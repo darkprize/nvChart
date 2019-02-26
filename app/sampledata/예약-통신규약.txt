@@ -1,0 +1,348 @@
+ip:andcom.iptime.org
+port:80
+
+1. 예약공간 확인
+
+--SendData--
+{"User":"AMI","Date":"","SpCode":""}
+{"User":"ANDCOM","Date":"","SpCode":"","UserPhone":"010-1234-5678"}
+user 유형에 따라 인증 여부 다름
+ANDCOM : 모바일. 핸드폰 번호로 인증함
+
+--RcvData--
+
+{
+"User":"AMI",
+"Reservation":
+             [
+{"SpCode":"42","SpName":"택배"},
+{"SpCode":"18","SpName":"신환"},
+{"SpCode":"01","SpName":"이선희-교정"},
+{"SpCode":"00","SpName":"투명교정"},
+{"SpCode":"30","SpName":"이선희(보철)"},
+{"SpCode":"41","SpName":"주낙중원장님"}
+             ]
+}
+
+
+2. 예약내역 조회(수진자명,연락처)
+--SendData--
+{"User":"AMI","Name":"성은진","Phone":"010-2322-0514"}
+
+--RcvData--
+{
+"User":"AMI",
+"Name":"성은진",
+"Reservation":
+             [
+{"Date":"2016-07-15","SpCode":"18","Time":"1500","KeyTime":"1502"},
+{"Date":"2016-07-28","SpCode":"01","Time":"1430","KeyTime":"1433"},
+{"Date":"2016-08-29","SpCode":"00","Time":"1830","KeyTime":"1831"},
+{"Date":"2016-09-29","SpCode":"01","Time":"1430","KeyTime":"1437"},
+{"Date":"2016-10-11","SpCode":"01","Time":"1000","KeyTime":"1006"},
+{"Date":"2016-11-03","SpCode":"01","Time":"1400","KeyTime":"1402"},
+{"Date":"2017-01-09","SpCode":"01","Time":"1400","KeyTime":"1405"},
+{"Date":"2017-04-11","SpCode":"01","Time":"1030","KeyTime":"1039"},
+{"Date":"2017-05-19","SpCode":"01","Time":"1000","KeyTime":"1001"}
+             ]
+}
+
+{
+"User":"AMI",
+"Name":"성은진",
+"Reservation":
+             [
+{"Date":"2016-07-15","SpCode":"18","Time":"1500","KeyTime":"1502","Desc":"신환 ,악마교정,/tm영하","Bigo":"7/4 부정교합"},
+{"Date":"2016-07-28","SpCode":"01","Time":"1430","KeyTime":"1433","Desc":"A-rec, (DX. DBS 확인후)","Bigo":""},
+{"Date":"2016-08-29","SpCode":"00","Time":"1830","KeyTime":"1831","Desc":"교정ck","Bigo":""},
+{"Date":"2016-09-29","SpCode":"01","Time":"1430","KeyTime":"1437","Desc":"교정ck&ext","Bigo":""},
+{"Date":"2016-10-11","SpCode":"01","Time":"1000","KeyTime":"1006","Desc":"와찔","Bigo":""},
+{"Date":"2016-11-03","SpCode":"01","Time":"1400","KeyTime":"1402","Desc":"발치,거의다왔어요","Bigo":""},
+{"Date":"2017-01-09","SpCode":"01","Time":"1400","KeyTime":"1405","Desc":"교정CK","Bigo":""},
+{"Date":"2017-04-11","SpCode":"01","Time":"1030","KeyTime":"1039","Desc":"교정ck","Bigo":""},
+{"Date":"2017-05-19","SpCode":"01","Time":"1000","KeyTime":"1001","Desc":"교정CK","Bigo":""}
+             ]
+}
+
+3. 예약내역 조회(예약일자,예약공간)
+--SendData--
+{"User":"AMI","Date":"2017-05-18","SpCode":"00"}
+
+--RcvData--
+{
+"User":"AMI",
+"Date":"2017-05-18",
+"SpCode":"00",
+"Reservation":
+             [
+{"Time":"0830","KeyTime":"0831","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0832","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0833","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0834","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0835","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0836","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0837","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0838","Name":"","Phone":""},
+{"Time":"0830","KeyTime":"0839","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0901","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0902","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0903","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0904","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0905","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0906","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0907","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0908","Name":"","Phone":""},
+{"Time":"0900","KeyTime":"0909","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0931","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0932","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0933","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0934","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0935","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0936","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0937","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0938","Name":"","Phone":""},
+{"Time":"0930","KeyTime":"0939","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1001","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1002","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1003","Name":"김영준","Phone":"010-1111-2222"},
+{"Time":"1000","KeyTime":"1004","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1005","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1006","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1007","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1008","Name":"","Phone":""},
+{"Time":"1000","KeyTime":"1009","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1031","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1032","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1033","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1034","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1035","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1036","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1037","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1038","Name":"","Phone":""},
+{"Time":"1030","KeyTime":"1039","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1101","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1102","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1103","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1104","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1105","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1106","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1107","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1108","Name":"","Phone":""},
+{"Time":"1100","KeyTime":"1109","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1131","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1132","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1133","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1134","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1135","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1136","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1137","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1138","Name":"","Phone":""},
+{"Time":"1130","KeyTime":"1139","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1201","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1202","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1203","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1204","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1205","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1206","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1207","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1208","Name":"","Phone":""},
+{"Time":"1200","KeyTime":"1209","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1231","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1232","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1233","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1234","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1235","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1236","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1237","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1238","Name":"","Phone":""},
+{"Time":"1230","KeyTime":"1239","Name":"","Phone":""},
+{"Time":"1300","KeyTime":"1301","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1302","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1303","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1304","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1305","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1306","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1307","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1308","Name":"점심시간","Phone":""},
+{"Time":"1300","KeyTime":"1309","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1331","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1332","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1333","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1334","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1335","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1336","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1337","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1338","Name":"점심시간","Phone":""},
+{"Time":"1330","KeyTime":"1339","Name":"점심시간","Phone":""},
+{"Time":"1400","KeyTime":"1401","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1402","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1403","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1404","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1405","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1406","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1407","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1408","Name":"","Phone":""},
+{"Time":"1400","KeyTime":"1409","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1431","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1432","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1433","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1434","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1435","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1436","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1437","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1438","Name":"","Phone":""},
+{"Time":"1430","KeyTime":"1439","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1501","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1502","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1503","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1504","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1505","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1506","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1507","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1508","Name":"","Phone":""},
+{"Time":"1500","KeyTime":"1509","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1531","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1532","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1533","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1534","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1535","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1536","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1537","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1538","Name":"","Phone":""},
+{"Time":"1530","KeyTime":"1539","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1601","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1602","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1603","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1604","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1605","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1606","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1607","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1608","Name":"","Phone":""},
+{"Time":"1600","KeyTime":"1609","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1631","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1632","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1633","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1634","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1635","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1636","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1637","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1638","Name":"","Phone":""},
+{"Time":"1630","KeyTime":"1639","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1701","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1702","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1703","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1704","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1705","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1706","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1707","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1708","Name":"","Phone":""},
+{"Time":"1700","KeyTime":"1709","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1731","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1732","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1733","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1734","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1735","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1736","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1737","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1738","Name":"","Phone":""},
+{"Time":"1730","KeyTime":"1739","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1801","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1802","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1803","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1804","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1805","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1806","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1807","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1808","Name":"","Phone":""},
+{"Time":"1800","KeyTime":"1809","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1831","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1832","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1833","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1834","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1835","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1836","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1837","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1838","Name":"","Phone":""},
+{"Time":"1830","KeyTime":"1839","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1901","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1902","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1903","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1904","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1905","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1906","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1907","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1908","Name":"","Phone":""},
+{"Time":"1900","KeyTime":"1909","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1931","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1932","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1933","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1934","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1935","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1936","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1937","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1938","Name":"","Phone":""},
+{"Time":"1930","KeyTime":"1939","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2001","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2002","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2003","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2004","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2005","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2006","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2007","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2008","Name":"","Phone":""},
+{"Time":"2000","KeyTime":"2009","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2031","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2032","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2033","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2034","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2035","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2036","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2037","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2038","Name":"","Phone":""},
+{"Time":"2030","KeyTime":"2039","Name":"","Phone":""}
+             ]
+}
+
+
+
+4. 예약내역 저장
+
+--SendData--
+{
+   "User":"AMI",
+   "Date":"2017-05-18",
+   "SpCode":"00",
+   "KeyTime":"1001",
+   "Name":"이영자",
+   "Phone":"010-1111-2222",
+   "Desc":"예약내용",
+   "Bigo":"비고",
+   "DoctorName":"오정원"
+}
+
+
+--RcvData--
+{"Code":"0","KeyData":"20170518001001","Msg":"예약내역을 저장했습니다."}
+
+
+
+
+
+5. 예약내역 삭제
+
+--SendData--
+{
+   "User":"AMI",
+   "Date":"2017-05-18",
+   "SpCode":"00",
+   "KeyTime":"1001",
+   "Name":"이영자",
+   "Gubun":"DELETE"
+}
+
+--RcvData--
+{"Code":"0","KeyData":"20170518001001","Msg":"예약내역을 삭제했습니다."}
+
+6. 에러 리턴
+
+{'Code':'9','Msg':'유효한 예약일자가 아닙니다.'}

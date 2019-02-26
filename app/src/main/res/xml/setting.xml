@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    >
+
+    <PreferenceCategory
+        android:title="@string/setting_category_1"
+        >
+        <Preference
+            android:title="@string/setting_public_ip"
+            android:id="@+id/prefPublicIP"
+            android:defaultValue="@string/setting_null"
+            android:key="key_public_ip"/>
+        <EditTextPreference
+            android:title="@string/setting_ip"
+            android:id="@+id/prefIP"
+            android:defaultValue="@string/setting_null"
+            android:key="key_ip"
+            android:summary="접속 주소를 설정합니다."
+            android:singleLine="true"
+            android:imeOptions="actionDone"/>
+        <EditTextPreference
+            android:title="@string/setting_port"
+            android:key="key_port"
+            android:id="@+id/prefPort"
+            android:inputType="number"
+            android:defaultValue="80"
+            android:summary="접속 포트를 설정합니다."
+            android:maxLines="1"
+            android:imeOptions="actionDone"
+            />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:title="@string/setting_category_2">
+        <Preference
+            android:title="@string/setting_phone"
+            android:key="key_phone"
+            android:editable="false"
+            />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:title="@string/setting_category_3">
+        <Preference
+            android:title="@string/setting_version"
+            android:key="key_version"
+            android:editable="false"
+            />
+        <Preference
+            android:title="@string/setting_teamviewer"
+            android:key="key_as"
+            android:summary="도움이 필요한 경우 먼저 앤드컴 고객센터로 연락주세요. 원격지원은 상담원과 통화 후에 가능합니다."
+            android:editable="false"
+            />
+    </PreferenceCategory>
+
+</PreferenceScreen>

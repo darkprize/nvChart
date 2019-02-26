@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#CEC5B7</color>
+    <color name="colorPrimaryDark">#A09789</color>
+    <color name="colorPrimarySoft">#EDE9DF</color>
+
+    <color name="colorSecondary">#CEC5B7</color>
+    <color name="colorSecondaryDark">#A09789</color>
+    <color name="colorSecondarySoft">#EDE9DF</color>
+
+    <color name="colorAccent">#A09789</color>
+
+    <color name="selected_background_color">#15a4fa</color>
+    <color name="unselected_background_color">#1c324a</color>
+    <color name="shadow_background_color">#28415f</color>
+    <color name="unselected_header_background_color">#1f3650</color>
+
+<!--    <color name="selected_background_color">#bbdefb</color>
+    <color name="unselected_background_color">#e3f2fd</color>
+    <color name="shadow_background_color">#82b1ff</color>
+    <color name="unselected_header_background_color">#1976d2</color>-->
+
+
+
+    <color name="bottom_sheet_background_start_color">#CFE6EA</color>
+    <color name="bottom_sheet_background_end_color">#e5fbff</color>
+
+    <color name="unselected_text_color">#537095</color>
+    <color name="selected_text_color">#ffffff</color>
+    <color name="separator_color">#273e5b</color>
+
+    <color name="popup_menu_item_text_color">#88a5c9</color>
+
+    <color name="female_icon_color">#e9515f</color>
+    <color name="male_icon_color">#f28944</color>
+</resources>

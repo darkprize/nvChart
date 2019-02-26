@@ -1,0 +1,211 @@
+- 사용가능 DB 확인
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"1"}
+
+  Return Data
+     {"User":"andcom3","DB":"1"}     DB1 연결가능
+     {"User":"andcom3","DB":"12"}    DB1, DB2 연결가능
+     {"User":"andcom3","DB":"13"}    DB1, DB3 연결가능
+     {"User":"andcom3","DB":"123"}   DB1, DB2, DB3 연결가능
+
+
+- 차트서식리스트
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"2","DB":"1","ND_CHARTNO":"","HIDDEN_FORM":"0"}     
+     HIDDEN_FORM="1"  '숨김서식 포함
+     HIDDEN_FORM="0"  '숨김서식 포함안함
+
+  Return Data   //차트번호 없으면 서식키,이름만 리턴
+     {
+        "User":"andcom3",
+        "LastNodeKey":"C0101",
+        "List":
+             [
+                {"NS_NODEKEY":"C0101","NS_TITLE":"환자기록부","ND_PAGE_CNT":"0"},
+                {"NS_NODEKEY":"C0105","NS_TITLE":"교정차트","ND_PAGE_CNT":"0"},
+                {"NS_NODEKEY":"C0102","NS_TITLE":"진료기록부1","ND_PAGE_CNT":"0"},
+                {"NS_NODEKEY":"C0103","NS_TITLE":"진료기록부2","ND_PAGE_CNT":"0"}
+             ]
+     }
+
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"2","DB":"1","ND_CHARTNO":"00000001"}
+
+  Return Data   //해당 차트번호의 서식페이지 갯수도 리턴
+     {
+        "User":"andcom3",
+        "LastNodeKey":"C0103",
+        "List":
+             [
+                {"NS_NODEKEY":"C0101","NS_TITLE":"환자기록부","ND_PAGE_CNT":"1"},
+                {"NS_NODEKEY":"C0105","NS_TITLE":"교정차트","ND_PAGE_CNT":"0"},
+                {"NS_NODEKEY":"C0102","NS_TITLE":"진료기록부1","ND_PAGE_CNT":"8"},
+                {"NS_NODEKEY":"C0103","NS_TITLE":"진료기록부2","ND_PAGE_CNT":"12"}
+             ]
+     }
+
+
+- 전자차트 특정 페이지 불러오기
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"3","DB":"1","ND_CHARTNO":"00000001","ND_NODEKEY":"C0101","ND_PAGENO":"1","BACK_IMAGE":"1"}
+
+  Return Data
+     {
+        "User":"andcom3",
+        "ReadOnly":"False",                  //읽기모드 False, True : 읽기만 가능. 쓰지 못함
+        "PenData":
+             [
+                {"BYTE":"0B0006E0FF9E06E0FFDD06E0003A06C9007A06B100DC06B1011C069A013F069A0161069A0173069A017E069A0190069A019B"},
+                {"BYTE":"0B0009A8002909A8003409DC008009F900B40A22010B0A2701390A2701790A27018A0A2701960A2701A70A1C01AD0A1001BE09FF01BE0A1C01BE0A5C01BE0A7E01BE0AA101BE0AB801AD0ABE01AD0ACF01AD0AF201AD0AFE019B"},
+                {"BYTE":"0B000DA900170DAF00170DC600170DD200170DFA00290E1D00290E3400290E5700290E8500290EA8003A0ED0004B0EF9005D0EFF00680F04006E0F0A00850F0A00910F1C00C50F1C00DC0F1C00FF0EFF01160ECB01390EB9014A0EB301500E9101500E8B01560E85015C0E7F01500E7F01450E7F01330E97012D0ED0012D0EF3012D0F16012D0F2D012D0F4A012D0F6101330F7301450F7301500F8401790F8401840F8401A70F6D01D00F5B01F20F5002430F3302600F2202830F0402BD0EF302C90EE202DA0EC502E60EBF02EB0EB302EB0EAE02F10EA802F70E9702F70E8B02F70E7902F70E6802F70E5D02F70E5702EB0E5102E60E4002DA0E3A02D40E3402C90E2E02C30E2E02B7"}
+             ],
+        "TextBox":
+             [
+                {"COLOR":"1","POSITION":"100/2200/1000/50","DESC":"아말감충전1면"},    //POSITION:Left/Top/Width/Height
+                {"COLOR":"2","POSITION":"100/2300/1200/50","DESC":"발수"},
+                {"COLOR":"1","POSITION":"100/2400/1500/50","DESC":"근관장측정검사"},
+                {"COLOR":"1","POSITION":"100/2500/2000/50","DESC":"아말감충전3면"}
+             ],
+        "Label":
+             [
+                {"BOLD":"1","COLOR":"1","POSITION":"100/200","DESC":"홍길동"},                    //POSITION:Left/Top
+                {"BOLD":"1","COLOR":"2","POSITION":"100/300","DESC":"00000001"},
+                {"BOLD":"1","COLOR":"1","POSITION":"100/400","DESC":"010-2358-1234"},
+                {"BOLD":"1","COLOR":"1","POSITION":"100/500","DESC":"서울시 금천구 가산동"}
+             ],
+        "Image":
+             [
+                {"POSITION":"300/200/1000/500","INDEX":"001"},     //AndcomDataImage001 
+                {"POSITION":"400/300/1200/750","INDEX":"002"}      //AndcomDataImage002
+             ],
+        "SignData":
+             [
+                {"SIGN_NAME":"홍길동","SIGN_TSA":"20181113131500"}     //전자서명 이름, TSA
+             ]
+     }
+     <---AndcomData_BackImage---
+     .........                                //차트서식배경이미지 Binary Data
+     ---AndcomData_BackImage--->
+
+     <---AndcomData_Image001---
+     .........                                //차트에 삽입된 이미지1 Binary Data
+     ---AndcomData_Image001--->
+
+     <---AndcomData_Image002---
+     .........                                //차트에 삽입된 이미지2 Binary Data
+     ---AndcomData_Image002--->
+
+     ---AndcomData_END---                   //자료 끝
+
+- 전자차트 특정 페이지 저장하기
+  Send Data
+     {  "User":"andcom3",
+        "UserPhone":"010-1234-5678",
+        "구분코드":"4",
+        "DB":"1",
+        "ND_CHARTNO":"00000001",
+        "ND_NODEKEY":"C0101",
+        "ND_PAGENO":"1",
+        "PenData":
+             [
+                {"BYTE":"0B0006E0FF9E06E0FFDD06E0003A06C9007A06B100DC06B1011C069A013F069A0161069A0173069A017E069A0190069A019B"},
+                {"BYTE":"0B0009A8002909A8003409DC008009F900B40A22010B0A2701390A2701790A27018A0A2701960A2701A70A1C01AD0A1001BE09FF01BE0A1C01BE0A5C01BE0A7E01BE0AA101BE0AB801AD0ABE01AD0ACF01AD0AF201AD0AFE019B"},
+                {"BYTE":"0B000DA900170DAF00170DC600170DD200170DFA00290E1D00290E3400290E5700290E8500290EA8003A0ED0004B0EF9005D0EFF00680F04006E0F0A00850F0A00910F1C00C50F1C00DC0F1C00FF0EFF01160ECB01390EB9014A0EB301500E9101500E8B01560E85015C0E7F01500E7F01450E7F01330E97012D0ED0012D0EF3012D0F16012D0F2D012D0F4A012D0F6101330F7301450F7301500F8401790F8401840F8401A70F6D01D00F5B01F20F5002430F3302600F2202830F0402BD0EF302C90EE202DA0EC502E60EBF02EB0EB302EB0EAE02F10EA802F70E9702F70E8B02F70E7902F70E6802F70E5D02F70E5702EB0E5102E60E4002DA0E3A02D40E3402C90E2E02C30E2E02B7"}
+             ],
+        "TextBox":
+             [
+                {"COLOR":"1","POSITION":"100/2200/1000/50","DESC":"아말감충전1면"},    //POSITION:Left/Top/Width/Height
+                {"COLOR":"2","POSITION":"100/2300/1200/50","DESC":"발수"},
+                {"COLOR":"1","POSITION":"100/2400/1500/50","DESC":"근관장측정검사"},
+                {"COLOR":"1","POSITION":"100/2500/2000/50","DESC":"아말감충전3면"}
+             ],
+        "Image":
+             [
+                {"POSITION":"300/200/1000/500","INDEX":"001"},     //AndcomDataImage001 
+                {"POSITION":"400/300/1200/750","INDEX":"002"}      //AndcomDataImage002
+             ]
+     }
+     <---AndcomData_Image001---
+     .........                                //차트에 삽입된 이미지1 Binary Data
+     ---AndcomData_Image001--->
+
+     <---AndcomData_Image002---
+     .........                                //차트에 삽입된 이미지2 Binary Data
+     ---AndcomData_Image002--->
+
+     ---AndcomData_END---                   //자료 끝
+
+  Return Data
+     {"User":"andcom3","Save":"1"}     저장완료
+     {"User":"andcom3","Save":"0","Msg":"저장중 오류가 발생했습니다."}     저장실패
+
+
+
+
+- 수진자명으로 검색
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"5","CTNAME":"홍길동"}     
+
+  Return Data
+     {
+        "User":"andcom3"
+        "List":
+            [
+              {"CTNAME":"홍길동","CTCHARTNO":"00017056","CTJUMINNO":"710414-1******","CTEMPLOYEE":"홍길동","CTEMPCODE":"00000000000","CTEMPNO":"71044611234","CTTEL":"3397-3586","CTHP":"010-2358-5555","CTLAST":"2017-07-26","CADATE":""},
+              {"CTNAME":"홍길동","CTCHARTNO":"00000111","CTJUMINNO":"830506-2******","CTEMPLOYEE":"홍길순","CTEMPCODE":"90700000000","CTEMPNO":"71088275678","CTTEL":"","CTHP":"01912341234","CTLAST":"2016-11-16","CADATE":""},
+              {"CTNAME":"홍길동","CTCHARTNO":"710414078","CTJUMINNO":"051218-4******","CTEMPLOYEE":"이영자","CTEMPCODE":"00000000000","CTEMPNO":"71044619999","CTTEL":"","CTHP":"","CTLAST":"2016-11-10","CADATE":""}
+            ]
+     }
+
+
+
+- 차트번호 검색
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"6","CTCHARTNO":"111"}     
+
+  Return Data
+     {
+        "User":"andcom3"
+        "List":
+            [
+              {"CTNAME":"홍길동","CTCHARTNO":"00000111","CTJUMINNO":"830506-2******","CTEMPLOYEE":"홍길순","CTEMPCODE":"90700000000","CTEMPNO":"71088275678","CTTEL":"","CTHP":"01912341234","CTLAST":"2016-11-16","CADATE":""}
+            ]
+     }
+
+
+
+
+- 접수내역 검색
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"7","CSDATE":"2019-01-01"}     
+
+  Return Data
+     {
+        "User":"andcom3",
+        "List":
+            [
+              {"CSCHARTNO":"00000003","CSNAME":"이정옥","CSAGE":"58/여","CSSATE":"접수","CSSATE_COLOR":"16711680","CSSATE_BOLD":"1","CSSEQ":"003","CSTIME":"PM  2:26(00:02)","CSDESC":"","CSDOCTOR":"","CSCASHIER":"","CAAMPM":"","CAAMPM_BOLD":"0","CAAMPM_COLOR":"0","CATIME":""},
+              {"CSCHARTNO":"00000002","CSNAME":"이향선2","CSAGE":"36/여","CSSATE":"진료중","CSSATE_COLOR":"32768","CSSATE_BOLD":"0","CSSEQ":"002","CSTIME":"PM  2:26","CSDESC":"","CSDOCTOR":"A이광수","CSCASHIER":"","CAAMPM":"","CAAMPM_BOLD":"0","CAAMPM_COLOR":"0","CATIME":"AM 10:00"},
+              {"CSCHARTNO":"00000001","CSNAME":"홍길동","CSAGE":"52/남","CSSATE":"진료완료","CSSATE_COLOR":"255","CSSATE_BOLD":"0","CSSEQ":"001","CSTIME":"PM  2:26","CSDESC":"","CSDOCTOR":"A이광수","CSCASHIER":"","CAAMPM":"","CAAMPM_BOLD":"0","CAAMPM_COLOR":"0","CATIME":"AM  9:30"}
+            ]
+     }
+
+
+- 진료현황 검색
+  Send Data
+     {"User":"andcom3","UserPhone":"010-1234-5678","구분코드":"8","CSDATE":"2019-01-24"}     
+
+  Return Data
+     {
+        "User":"andcom3",
+        "List":
+            [
+              {"CATIME":"AM  9:30","CANAME":"홍길동","CACHARTNO":"00000001","CTJUMINNO":"661116-1******","CASIGN":"","CARESULT":"1","CA_FONTFORECOLOR":"-2147483632","CA_FONTSTRIKETHROUGH":"0","CAVIP":"0","CAVIP_FONTFORECOLOR":"0"},
+              {"CATIME":"AM 10:00","CANAME":"이향선2","CACHARTNO":"00000002","CTJUMINNO":"820629-2******","CASIGN":"","CARESULT":"1","CA_FONTFORECOLOR":"-2147483632","CA_FONTSTRIKETHROUGH":"0","CAVIP":"1","CAVIP_FONTFORECOLOR":"16711680"},
+              {"CSSEQ":"001","CSTIME":"PM  2:26","CSNAME":"홍길동","CSCHARTNO":"00000001","CTJUMINNO":"661116-1******","CSDESC":"","CSCALLCASH":"1","CSSTATE":"2","CSCASH":"0"},
+              {"CSSEQ":"002","CSTIME":"PM  2:26","CSNAME":"이향선2","CSCHARTNO":"00000002","CTJUMINNO":"820629-2******","CSDESC":"","CSCALLCASH":"1","CSSTATE":"1","CSCASH":"0"},
+              {"CSSEQ":"003","CSTIME":"PM  2:26","CSNAME":"이정옥","CSCHARTNO":"00000003","CTJUMINNO":"600220-2******","CSDESC":"","CSCALLCASH":"0","CSSTATE":"0","CSCASH":"0"}
+            ]
+     }
+     // "CSCALLCASH"="1" 예약후접수
+

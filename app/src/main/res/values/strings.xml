@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Papyrus28Chart</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">설정</string>
+
+    <!-- Strings related to Settings -->
+    <string name="setting_category_1">접속 정보</string>
+    <string name="setting_category_2">인증 정보</string>
+    <string name="setting_category_3">어플리케이션 정보</string>
+
+    <string name="setting_ip">접속 IP 주소</string>
+    <string name="setting_public_ip">공인 IP 주소</string>
+    <string name="default_value">andcom.iptime.org</string>
+    <string name="setting_port">외부 접속 포트</string>
+    <string name="setting_phone">전화 번호</string>
+
+    <string name="setting_version">버전 정보</string>
+    <string name="setting_teamviewer">원격 지원 받기</string>
+    <string name="setting_null"> </string>
+</resources>
