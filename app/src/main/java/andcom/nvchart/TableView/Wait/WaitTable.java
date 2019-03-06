@@ -1,6 +1,8 @@
 package andcom.nvchart.TableView.Wait;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.NestedScrollView;
@@ -14,6 +16,8 @@ import android.widget.ProgressBar;
 
 import com.evrencoskun.tableview.TableView;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -21,7 +25,11 @@ import java.util.concurrent.ExecutionException;
 import andcom.nvchart.ASyncSocket;
 import andcom.nvchart.ASyncTextSocket;
 import andcom.nvchart.MainActivity;
+import andcom.nvchart.MakeJSONData;
+import andcom.nvchart.MsgType;
 import andcom.nvchart.R;
+import andcom.nvchart.RecyclerTouchListener;
+import andcom.nvchart.SendData;
 import andcom.nvchart.TableView.model.CellModel;
 import andcom.nvchart.TableView.model.ColumnHeaderModel;
 import andcom.nvchart.TableView.model.RowHeaderModel;
@@ -32,6 +40,7 @@ public class WaitTable extends Fragment implements MainActivity.Refresh {
     private ProgressBar mProgressBar;
     private WaitTableAdapter mTableAdapter;
     private RecyclerView recyclerView;
+    private Context context;
 
     public WaitTable (){
         Log.e("WaitTableConstruct","Load WaitTableFragment");
@@ -47,6 +56,7 @@ public class WaitTable extends Fragment implements MainActivity.Refresh {
             savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.content_wait_table, container, false);
+        this.context = getContext();
 
 
         //initializeTableView(mTableView);
@@ -64,51 +74,29 @@ public class WaitTable extends Fragment implements MainActivity.Refresh {
 
     @Override
     public void refreshData(){
-        String tempData = "{\n" +
-                "        \"User\":\"andcom3\",\n" +
-                "        \"List\":\n" +
-                "            [\n" +
-                "              {\"CSCHARTNO\":\"00000003\",\"CSNAME\":\"이정옥\",\"CSAGE\":\"58/여\",\"CSSATE\":\"접수\",\"CSSATE_COLOR\":\"16711680\",\"CSSATE_BOLD\":\"1\",\"CSSEQ\":\"003\",\"CSTIME\":\"PM  2:26(00:02)\",\"CSDESC\":\"\",\"CSDOCTOR\":\"\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000002\",\"CSNAME\":\"이향선2\",\"CSAGE\":\"36/여\",\"CSSATE\":\"진료중\",\"CSSATE_COLOR\":\"32768\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM 10:00\"},\n" +
-                "              {\"CSCHARTNO\":\"00000001\",\"CSNAME\":\"홍길동\",\"CSAGE\":\"52/남\",\"CSSATE\":\"진료완료\",\"CSSATE_COLOR\":\"255\",\"CSSATE_BOLD\":\"0\",\"CSSEQ\":\"001\",\"CSTIME\":\"PM  2:26\",\"CSDESC\":\"\",\"CSDOCTOR\":\"A이광수\",\"CSCASHIER\":\"\",\"CAAMPM\":\"\",\"CAAMPM_BOLD\":\"0\",\"CAAMPM_COLOR\":\"0\",\"CATIME\":\"AM  9:30\"}\n" +
-                "            ]\n" +
-                "     }";
 
-        ASyncTextSocket aSyncSocket = new ASyncTextSocket(getActivity(),"192.168.10.109",80);
-        try{
-            tempData = aSyncSocket.execute("{\"User\":\"andcom3\",\"UserPhone\":\"010-1234-5678\",\"구분코드\":\"7\",\"CSDATE\":\"2019-02-18\"}").get();
-            if(tempData == null){
-                return;
-            }
-        }catch (InterruptedException ie){
-            ie.printStackTrace();
-        }catch (ExecutionException ee){
-            ee.printStackTrace();
-        }
-        WaitRecyclerAdapter adapter = new WaitRecyclerAdapter(tempData);
+        JSONObject rcvData = SendData.getMessage(context,MakeJSONData.get(MsgType.LOAD_WAIT,"2019-03-06").toString());
+
+        final WaitRecyclerAdapter adapter = new WaitRecyclerAdapter(rcvData.toString());
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
+
+        recyclerView.addOnItemTouchListener(new RecyclerTouchListener(context, recyclerView, new RecyclerTouchListener.ClickListener() {
+            @Override
+            public void onClick(View view, int position) {
+                Message msg = MainActivity.handler.obtainMessage();
+                msg.what = MsgType.LOAD_NVCHART;
+                msg.obj = adapter.getChartNo(position);
+
+                MainActivity.handler.sendMessage(msg);
+            }
+
+            @Override
+            public void onLongClick(View view, int position) {
+
+            }
+        }));
     }
     private void initRecyclerView(){
         recyclerView = (RecyclerView)getView().findViewById(R.id.waitRecyclerView);

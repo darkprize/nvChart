@@ -49,6 +49,39 @@ public class NvListRecyclerAdapter extends RecyclerView.Adapter<NvListRecyclerAd
 
     }
 
+    public String getNodeKey(int position){
+        String nodekey ;
+        try{
+            nodekey = jarrNvList.getJSONObject(position).getString("NS_NODEKEY");
+        }catch (JSONException je){
+            je.printStackTrace();
+            nodekey = null;
+        }
+
+        return nodekey;
+    }
+    public String getTitle(int position){
+        String title ;
+        try{
+            title = jarrNvList.getJSONObject(position).getString("NS_TITLE");
+        }catch (JSONException je){
+            je.printStackTrace();
+            title = null;
+        }
+
+        return title;
+    }
+    public String getPageCnt(int position){
+        String pagecnt ;
+        try{
+            pagecnt = jarrNvList.getJSONObject(position).getString("ND_PAGE_CNT");
+        }catch (JSONException je){
+            je.printStackTrace();
+            pagecnt = null;
+        }
+
+        return pagecnt;
+    }
 
     @Override
     public int getItemViewType(int position) {

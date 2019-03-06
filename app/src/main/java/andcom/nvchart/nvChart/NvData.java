@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import andcom.nvchart.ASyncSocket;
+import andcom.nvchart.Prefer;
 
 public class NvData {
     private JSONObject jsonObject;
@@ -62,14 +63,19 @@ public class NvData {
     final String PACKET_END = "---AndcomData_END---";
 
     public String cJsonData;
-    NvData(Context context, SpenPageDoc spenPageDoc){
+    NvData(Context context, SpenPageDoc spenPageDoc,String msg){
         try{
             this.spenPageDoc = spenPageDoc;
             this.context = context;
 
             double socketTrasfer=System.currentTimeMillis();
-            ASyncSocket socket = new ASyncSocket((Activity)context,"192.168.10.186",200);
-            data = socket.execute("{'User':'andcom3','UserPhone':'010-1234-5678','구분코드':'3','DB':'1','ND_CHARTNO':'00000001','ND_NODEKEY':'C0101','ND_PAGENO':'1','BACK_IMAGE':'1'}").get();
+
+            String ip = Prefer.getPrefString("key_ip","");
+            int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
+
+            ASyncSocket socket = new ASyncSocket((Activity)context,ip,port);
+            data = socket.execute(msg).get();
+
             Log.e("SocketTranferTime","a"+String.format("%.4f",(System.currentTimeMillis()-socketTrasfer)/1000.0));
 
             String jsonData;

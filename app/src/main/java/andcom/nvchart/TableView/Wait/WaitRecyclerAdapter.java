@@ -75,6 +75,18 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
     public int getItemCount() {
         return jarrWaitList.length();
     }
+
+    public String getChartNo(int position){
+        String chartno ;
+        try{
+            chartno = jarrWaitList.getJSONObject(position).getString("CSCHARTNO");
+        }catch (JSONException je){
+            je.printStackTrace();
+            chartno = null;
+        }
+
+        return chartno;
+    }
     class ItemViewHolder extends RecyclerView.ViewHolder{
         private CardView cardView;
         private TextView txtSeq;

@@ -99,6 +99,17 @@ public class OrderCashRecyclerAdapter extends RecyclerView.Adapter<OrderCashRecy
 
     }
 
+    public String getChartNo(int position){
+        String chartno ;
+        try{
+            chartno = jarrCashList.getJSONObject(position).getString("CACHARTNO");
+        }catch (JSONException je){
+            je.printStackTrace();
+            chartno = null;
+        }
+
+        return chartno;
+    }
 
     @Override
     public int getItemViewType(int position) {

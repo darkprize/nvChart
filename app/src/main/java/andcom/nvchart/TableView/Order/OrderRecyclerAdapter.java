@@ -61,6 +61,18 @@ public class OrderRecyclerAdapter extends RecyclerView.Adapter<OrderRecyclerAdap
         //return super.getItemViewType(position);
         return position;
     }
+
+    public String getChartNo(int position){
+        String chartno ;
+        try{
+            chartno = jarrOrderList.getJSONObject(position).getString("CACHARTNO");
+        }catch (JSONException je){
+            je.printStackTrace();
+            chartno = null;
+        }
+
+        return chartno;
+    }
     @Override
     public int getItemCount() {
         return jarrOrderList.length();

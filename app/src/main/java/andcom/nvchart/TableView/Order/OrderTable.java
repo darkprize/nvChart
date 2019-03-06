@@ -32,7 +32,11 @@ import java.util.concurrent.ExecutionException;
 
 import andcom.nvchart.ASyncTextSocket;
 import andcom.nvchart.MainActivity;
+import andcom.nvchart.MakeJSONData;
+import andcom.nvchart.MsgType;
 import andcom.nvchart.R;
+import andcom.nvchart.RecyclerTouchListener;
+import andcom.nvchart.SendData;
 import andcom.nvchart.TableView.Wait.WaitRecyclerAdapter;
 import andcom.nvchart.TableView.model.CellModel;
 import andcom.nvchart.TableView.model.ColumnHeaderModel;
@@ -72,7 +76,7 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
             savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.content_order_table, container, false);
-
+        this.context = getContext();
 
         return view;
     }
@@ -92,6 +96,7 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
         layoutCash2 = (LinearLayout)getView().findViewById(R.id.layoutCash2);
         layoutCash3 = (LinearLayout)getView().findViewById(R.id.layoutCash3);
         layoutCash4 = (LinearLayout)getView().findViewById(R.id.layoutCash4);
+
 
         CheckBox call = (CheckBox)getView().findViewById(R.id.chkCall);
         call.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -151,42 +156,14 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
     @Override
     public void refreshData(){
         Log.d("refreshData","re");
-        String tempData = "{\n" +
-                "        \"User\":\"andcom3\",\n" +
-                "        \"List\":\n" +
-                "            [\n" +
-                "              {\"CATIME\":\"AM  9:30\",\"CANAME\":\"홍길동\",\"CACHARTNO\":\"00000001\",\"CTJUMINNO\":\"661116-1******\",\"CASIGN\":\"예약내용 테스트1\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"0\",\"CAVIP_FONTFORECOLOR\":\"0\"},\n" +
-                "              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"예약내용 테스트2\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                "              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"예약내용 테스트3 1234567890\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                //"              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                //"              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                //"              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                //"              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                //"              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                //"              {\"CATIME\":\"AM 10:00\",\"CANAME\":\"이향선2\",\"CACHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CASIGN\":\"\",\"CARESULT\":\"1\",\"CA_FONTFORECOLOR\":\"-2147483632\",\"CA_FONTSTRIKETHROUGH\":\"0\",\"CAVIP\":\"1\",\"CAVIP_FONTFORECOLOR\":\"16711680\"},\n" +
-                "              {\"CSSEQ\":\"001\",\"CSTIME\":\"PM  2:26\",\"CSNAME\":\"홍길동\",\"CSCHARTNO\":\"00000001\",\"CTJUMINNO\":\"661116-1******\",\"CSDESC\":\"\",\"CSCALLCASH\":\"1\",\"CSSTATE\":\"2\",\"CSCASH\":\"0\"},\n" +
-                "              {\"CSSEQ\":\"002\",\"CSTIME\":\"PM  2:26\",\"CSNAME\":\"이향선2\",\"CSCHARTNO\":\"00000002\",\"CTJUMINNO\":\"820629-2******\",\"CSDESC\":\"\",\"CSCALLCASH\":\"1\",\"CSSTATE\":\"1\",\"CSCASH\":\"0\"},\n" +
-                "              {\"CSSEQ\":\"003\",\"CSTIME\":\"PM  2:26\",\"CSNAME\":\"이정옥\",\"CSCHARTNO\":\"00000003\",\"CTJUMINNO\":\"600220-2******\",\"CSDESC\":\"\",\"CSCALLCASH\":\"0\",\"CSSTATE\":\"0\",\"CSCASH\":\"0\"}\n" +
-                "            ]\n" +
-                "     }";
-        ASyncTextSocket aSyncSocket = new ASyncTextSocket(getActivity(),"192.168.10.109",80);
-        try{
-            tempData = aSyncSocket.execute("{\"User\":\"andcom3\",\"UserPhone\":\"010-1234-5678\",\"구분코드\":\"8\",\"CSDATE\":\"2019-02-18\"}").get();
-            if(tempData == null){
-                return;
-            }
-        }catch (InterruptedException ie){
-            ie.printStackTrace();
-        }catch (ExecutionException ee){
-            ee.printStackTrace();
-        }
+
+        JSONObject rcvData = SendData.getMessage(context,MakeJSONData.get(MsgType.LOAD_ORDER,"2019-03-06").toString());
 
         JSONArray arrCall=new JSONArray();
         JSONArray arrCash=new JSONArray();
 
         try{
-            JSONObject data = new JSONObject(tempData);
-            JSONArray jsonArray = data.getJSONArray("List");
+            JSONArray jsonArray = rcvData.getJSONArray("List");
             for(int i=0;i<jsonArray.length();i++){
                 try{
                     jsonArray.getJSONObject(i).getString("CATIME");
@@ -201,22 +178,53 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
         }
 
 
-        OrderRecyclerAdapter adapter = new OrderRecyclerAdapter(arrCall);
+        final OrderRecyclerAdapter adapter = new OrderRecyclerAdapter(arrCall);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
 
         recyclerViewCall.setLayoutManager(linearLayoutManager);
         recyclerViewCall.setAdapter(adapter);
         adapter.notifyDataSetChanged();
 
+        recyclerViewCall.addOnItemTouchListener(new RecyclerTouchListener(context, recyclerViewCall, new RecyclerTouchListener.ClickListener() {
+            @Override
+            public void onClick(View view, int position) {
+                Message msg = MainActivity.handler.obtainMessage();
+                msg.what = MsgType.LOAD_NVCHART;
+                msg.obj = adapter.getChartNo(position);
+
+                MainActivity.handler.sendMessage(msg);
+            }
+
+            @Override
+            public void onLongClick(View view, int position) {
+
+            }
+        }));
 
 
         RecyclerView[] arrRecyclerView = {recyclerViewOrder1,recyclerViewOrder2,recyclerViewOrder3,recyclerViewOrder4};
         for(int i=0;i<arrRecyclerView.length;i++){
             LinearLayoutManager linearLayoutManager2 = new LinearLayoutManager(getActivity());
-            OrderCashRecyclerAdapter orderCashRecyclerAdapter = new OrderCashRecyclerAdapter(arrCash,i);
+            final OrderCashRecyclerAdapter orderCashRecyclerAdapter = new OrderCashRecyclerAdapter(arrCash,i);
             arrRecyclerView[i].setLayoutManager(linearLayoutManager2);
             arrRecyclerView[i].setAdapter(orderCashRecyclerAdapter);
             orderCashRecyclerAdapter.notifyDataSetChanged();
+
+            arrRecyclerView[i].addOnItemTouchListener(new RecyclerTouchListener(context, arrRecyclerView[i], new RecyclerTouchListener.ClickListener() {
+                @Override
+                public void onClick(View view, int position) {
+                    Message msg = MainActivity.handler.obtainMessage();
+                    msg.what = MsgType.LOAD_NVCHART;
+                    msg.obj = orderCashRecyclerAdapter.getChartNo(position);
+
+                    MainActivity.handler.sendMessage(msg);
+                }
+
+                @Override
+                public void onLongClick(View view, int position) {
+
+                }
+            }));
         }
     }
     public void initRecyclerView(){

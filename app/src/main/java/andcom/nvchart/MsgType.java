@@ -17,6 +17,9 @@ public class MsgType {
             , SHOW_DIALOG = 8
             , SEND_IMAGE = 9
             , LOAD_DBLIST = 10
-            , LOAD_NVLIST = 11;
+            , LOAD_NVLIST = 11
+            , LOAD_NVCHART = 12
+            , LOAD_WAIT = 13
+            , LOAD_ORDER = 14;
 
 }

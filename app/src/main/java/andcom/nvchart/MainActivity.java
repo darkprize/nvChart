@@ -5,10 +5,12 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -43,6 +45,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -75,10 +78,11 @@ public class MainActivity extends AppCompatActivity
 
     static long transfer;
     public static Context context;
-    static Handler handler;
+    public static Handler handler;
     static String store_version;
 
     static String selectDB;
+    static String selectChart;
 
     FrameLayout waitFrame, frmMain;
     Button btnSearch;
@@ -101,12 +105,34 @@ public class MainActivity extends AppCompatActivity
 
     TextInputEditText editName,editChartNo;
 
-    @SuppressLint("ClickableViewAccessibility")
+    public static RecyclerView recyclerViewNvList;
+    public static NvListRecyclerAdapter nvListRecyclerAdapter;
+    private static JSONObject jNvData;
+    public static void setjNvData(@Nullable String db, @Nullable String chartno,@Nullable String nodekey,@Nullable String page){
+        if(jNvData==null){
+            jNvData = MakeJSONData.get(MsgType.LOAD_NVCHART,db,chartno,nodekey,page);
+        }else{
+            try{
+                if(db!=null)jNvData.put("DB",db);
+                if(chartno!=null) jNvData.put("ND_CHARTNO",chartno);
+                if(nodekey!=null) jNvData.put("ND_NODEKEY",nodekey);
+                if(page!=null) jNvData.put("ND_PAGENO",page);
+
+            }catch (JSONException je){
+                je.printStackTrace();
+            }
+        }
+        Log.w("jNvData",jNvData.toString());
+    }
+    public static JSONObject getjNvData(){
+
+        return jNvData;
+    }
+    @SuppressLint({"ClickableViewAccessibility", "HandlerLeak"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //test
 
         context = this;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -165,12 +191,12 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-
+/*
         fm2 = getSupportFragmentManager();
         ft2 = fm2.beginTransaction();
         bottomFragment = new WaitTable();
         ft2.add(R.id.orderFrame, bottomFragment);
-        ft2.commit();
+        ft2.commit();*/
 
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -236,6 +262,18 @@ public class MainActivity extends AppCompatActivity
         };
         market.start();
 
+        handler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+                switch (msg.what){
+                    case MsgType.LOAD_NVCHART :
+                        load_NvChart(msg.obj.toString());
+                        break;
+
+                }
+            }
+        };
+
 
 
         initView();
@@ -256,6 +294,9 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        View headerView = navigationView.getHeaderView(0);
+        //headerView.getBackground().setColorFilter(0x80000000,PorterDuff.Mode.MULTIPLY);
+        navigationView.getBackground().setColorFilter(0x80ffffff,PorterDuff.Mode.MULTIPLY);
 
         frmMain = (FrameLayout) findViewById(R.id.frmMain);
 
@@ -274,28 +315,7 @@ public class MainActivity extends AppCompatActivity
         ft.commit();
 
 
-        /*btnSearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                drawer.closeDrawer(GravityCompat.START, true);
 
-                Thread worker = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        fragment = new NvChart();
-
-                        FragmentManager fm = getSupportFragmentManager();
-                        FragmentTransaction ft = fm.beginTransaction();
-
-                        ft.replace(R.id.frmMain, fragment);
-                        ft.commit();
-                    }
-                });
-
-                worker.start();
-
-            }
-        });*/
 
         tabLayout = (TabLayout) findViewById(R.id.tab);
         tabLayout.addTab(tabLayout.newTab().setText("대기현황"));
@@ -387,35 +407,37 @@ public class MainActivity extends AppCompatActivity
 
         View thisBtn = (Button)v;
         thisBtn.setSelected(true);
+        Prefer.setPref("DB",thisBtn.getTag().toString());
+        setjNvData(thisBtn.getTag().toString(),null,null,null);
 
-        Log.e("dbButton",v.getTag().toString() +" 클릭");
-        JSONObject msg = MakeJSONData.get(MsgType.LOAD_NVLIST,thisBtn.getTag().toString());
+
+        JSONObject msg = MakeJSONData.get(MsgType.LOAD_NVLIST,thisBtn.getTag().toString(),"");
+
         JSONObject rcvData = SendData.getMessage(context,msg.toString());
         //리스트 만들기
-        try{
-            rcvData = new JSONObject("{\n" +
-                    "        \"User\":\"andcom3\",\n" +
-                    "        \"LastNodeKey\":\"C0101\",\n" +
-                    "        \"List\":\n" +
-                    "             [\n" +
-                    "                {\"NS_NODEKEY\":\"C0101\",\"NS_TITLE\":\"환자기록부\",\"ND_PAGE_CNT\":\"0\"},\n" +
-                    "                {\"NS_NODEKEY\":\"C0105\",\"NS_TITLE\":\"교정차트\",\"ND_PAGE_CNT\":\"0\"},\n" +
-                    "                {\"NS_NODEKEY\":\"C0102\",\"NS_TITLE\":\"진료기록부1\",\"ND_PAGE_CNT\":\"0\"},\n" +
-                    "                {\"NS_NODEKEY\":\"C0103\",\"NS_TITLE\":\"진료기록부2\",\"ND_PAGE_CNT\":\"0\"}\n" +
-                    "             ]\n" +
-                    "     }");
-        }catch(Exception e){
-            e.printStackTrace();
-        }
 
+        nvListRecyclerAdapter = new NvListRecyclerAdapter(rcvData.toString());
+        recyclerViewNvList = (RecyclerView)findViewById(R.id.recyclerNvList);
 
+        recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
+        recyclerViewNvList.setLayoutManager(new LinearLayoutManager(context));
+        nvListRecyclerAdapter.notifyDataSetChanged();
 
-        NvListRecyclerAdapter adapter = new NvListRecyclerAdapter(rcvData.toString());
-        RecyclerView recyclerView = (RecyclerView)findViewById(R.id.recyclerNvList);
+        recyclerViewNvList.addOnItemTouchListener(new RecyclerTouchListener(this, recyclerViewNvList, new RecyclerTouchListener.ClickListener() {
+            @Override
+            public void onClick(View view, int position) {
+                Prefer.setPref("NVLIST",position);
+                //setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(position),nvListRecyclerAdapter.getPageCnt(position));
+                load_NvChart(selectChart);
+            }
 
-        recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(context));
-        adapter.notifyDataSetChanged();
+            @Override
+            public void onLongClick(View view, int position) {
+
+            }
+        }));
+        setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(0),nvListRecyclerAdapter.getPageCnt(0));
+
     }
     public interface Refresh {
         void refreshData();
@@ -430,22 +452,89 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void onClick_btnSearch(View v){
+        JSONObject rcvData = new JSONObject();
         if(!editName.getText().toString().equals("") && editChartNo.getText().toString().equals("")){
             //이름만 넣고 검색
             JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_NAME,editName.getText().toString());
-            JSONObject rcvData =  SendData.getMessage(this,msg.toString());
+            rcvData =  SendData.getMessage(this,msg.toString());
 
-            Log.w("searchName",rcvData.toString());
+
         }else if(!editChartNo.equals("")){
             //차트번호 검색
-            JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_NAME,editName.getText().toString());
-            JSONObject rcvData =  SendData.getMessage(this,msg.toString());
-
-            Log.w("searchName",rcvData.toString());
+            JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_CHARTNO,editChartNo.getText().toString());
+            rcvData =  SendData.getMessage(this,msg.toString());
 
             //차트번호로 검색
         }else{
             //둘다 공백인채로 눌렀을 때
+            return;
+        }
+
+        try{
+            if(rcvData.getString("Code").equals("9")){
+                Toast.makeText(this,rcvData.getString("Msg"),Toast.LENGTH_LONG).show();
+            }
+        }catch (JSONException je){
+
+            RecyclerView recyclerView = (RecyclerView)navigationView.findViewById(R.id.recyclerCust);
+            final CustListRecyclerAdapter adapter = new CustListRecyclerAdapter(rcvData.toString());
+            if(adapter.getItemCount()==1){
+                load_NvChart(adapter.getChartNo(0));
+            }
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+            recyclerView.setAdapter(adapter);
+
+            recyclerView.addOnItemTouchListener(new RecyclerTouchListener(this,recyclerView,new RecyclerTouchListener.ClickListener(){
+                @Override
+                public void onClick(View view, int position) {
+                    selectChart = adapter.getChartNo(position);
+                    load_NvChart(selectChart);
+                }
+
+                @Override
+                public void onLongClick(View view, int position) {
+
+                }
+            }));
+
+        }
+    }
+
+    public void load_NvChart(final String chartNo){
+        int nPageCnt = Integer.parseInt(nvListRecyclerAdapter.getPageCnt(Prefer.getPrefInt("NVLIST",0)));
+        if(nPageCnt == 0)
+            nPageCnt = 1;
+
+        setjNvData(null,chartNo,nvListRecyclerAdapter.getNodeKey(Prefer.getPrefInt("NVLIST",0)),String.valueOf(nPageCnt));
+
+
+        drawer.closeDrawer(GravityCompat.START, true);
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(editChartNo.getWindowToken(), 0);
+        imm.hideSoftInputFromWindow(editName.getWindowToken(), 0);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+        Thread worker = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                fragment = new NvChart();
+                Bundle bundle = new Bundle();
+                bundle.putString("DATA",getjNvData().toString());
+                fragment.setArguments(bundle);
+                FragmentManager fm = getSupportFragmentManager();
+                FragmentTransaction ft = fm.beginTransaction();
+
+                ft.replace(R.id.frmMain, fragment);
+                ft.commit();
+            }
+        });
+        worker.start();
+        if(chartNo!=null){
+            selectChart=chartNo;
+            JSONObject rcvData = SendData.getMessage(this,MakeJSONData.get(MsgType.LOAD_NVLIST,Prefer.getPrefString("DB","1"),chartNo).toString());
+            nvListRecyclerAdapter = new NvListRecyclerAdapter(rcvData.toString());
+            recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
+            nvListRecyclerAdapter.notifyDataSetChanged();
         }
     }
     @Override
@@ -454,6 +543,7 @@ public class MainActivity extends AppCompatActivity
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         }else if(fragment instanceof NvChart){
+            selectChart = null;
             fragment = new MainFrameTable();
             FragmentManager fm = getSupportFragmentManager();
             FragmentTransaction ft = fm.beginTransaction();

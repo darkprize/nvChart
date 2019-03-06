@@ -1,5 +1,7 @@
 package andcom.nvchart;
 
+import android.util.Log;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -20,12 +22,12 @@ public class MakeJSONData {
             jsonObject.put("UserPhone",uuid);
             switch (what){
                 case MsgType.SEARCH_BY_NAME :
-                    protocol = "andcom2";
-                    jsonObject.put("수진자명",params[0].toString());
+                    jsonObject.put("CTNAME",params[0].toString());
+                    jsonObject.put("구분코드","5");
                     break;
                 case MsgType.SEARCH_BY_CHARTNO :
-                    protocol = "andcom2";
-                    jsonObject.put("차트번호",params[0].toString());
+                    jsonObject.put("CTCHARTNO",params[0].toString());
+                    jsonObject.put("구분코드","6");
                     break;
                 case MsgType.FIND_AGREE_TOTAL_NUM :
                     jsonObject.put("차트번호",params[0].toString());
@@ -64,11 +66,25 @@ public class MakeJSONData {
                 case MsgType.LOAD_NVLIST:
                     jsonObject.put("구분코드","2");
                     jsonObject.put("DB",params[0].toString());
-                    jsonObject.put("ND_CHARTNO","");
+                    jsonObject.put("ND_CHARTNO",params[1]);
                     jsonObject.put("HIDDEN_FORM","0");
-
-
-                break;
+                    break;
+                case MsgType.LOAD_NVCHART:
+                    jsonObject.put("구분코드","3");
+                    jsonObject.put("DB",params[0]);
+                    jsonObject.put("ND_CHARTNO",params[1]);
+                    jsonObject.put("ND_NODEKEY",params[2]);
+                    jsonObject.put("ND_PAGENO",params[3]);
+                    jsonObject.put("BACK_IMAGE","1");
+                    break;
+                case MsgType.LOAD_WAIT:
+                    jsonObject.put("구분코드","7");
+                    jsonObject.put("CSDATE",params[0].toString());
+                    break;
+                case MsgType.LOAD_ORDER:
+                    jsonObject.put("구분코드","8");
+                    jsonObject.put("CSDATE",params[0].toString());
+                    break;
                 default:
                     break;
             }

@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
     android:background="@drawable/side_nav_bar"
     android:gravity="top"
     android:orientation="vertical"
@@ -35,7 +36,7 @@
     <android.support.design.widget.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        style="@style/Outlined"
+        style="@style/WaitHeaderStyle"
         android:hint="이름">
         <android.support.design.widget.TextInputEditText
             android:layout_width="match_parent"
@@ -45,7 +46,7 @@
     <android.support.design.widget.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        style="@style/Outlined"
+        style="@style/WaitHeaderStyle"
         android:hint="차트번호">
         <android.support.design.widget.TextInputEditText
             android:layout_width="match_parent"
@@ -57,7 +58,10 @@
         android:layout_height="wrap_content"
         android:text="조회"
         android:id="@+id/btnSearch"
+        android:textColor="#ff000000"
+        android:layout_margin="5dp"
         android:onClick="onClick_btnSearch"
+        android:background="@color/colorSecondarySoft"
         />
     <FrameLayout
         android:layout_width="match_parent"
@@ -71,8 +75,9 @@
         <android.support.v7.widget.RecyclerView
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:background="@drawable/side_nav_bar"
-            android:id="@+id/recyclerCust">
+            android:background="@color/colorSecondary"
+            android:id="@+id/recyclerCust"
+            tools:listitem="@layout/cust_item">
 
         </android.support.v7.widget.RecyclerView>
 

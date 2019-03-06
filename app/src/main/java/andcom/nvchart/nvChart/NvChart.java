@@ -16,7 +16,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
-import android.util.Base64;
 import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -60,9 +59,6 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -70,7 +66,6 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
 import andcom.nvchart.ASyncImageSocket;
-import andcom.nvchart.ASyncTextSocket;
 import andcom.nvchart.R;
 
 public class NvChart extends Fragment {
@@ -85,6 +80,8 @@ public class NvChart extends Fragment {
     String state ;
     private int mToolType = SpenSurfaceView.TOOL_SPEN;
     private int mMode = MODE_PEN;
+
+    String cData;
 
     Button btn,btn2,btn3;
     Button test;
@@ -119,10 +116,14 @@ public class NvChart extends Fragment {
         Log.e("NvChartConstruct","Load NvChartFragment");
 
     }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i(TAG,"OnCreate call");
+
+
+        this.cData = getArguments().getString("DATA");
 
     }
     public int indexOf(byte[] outerArray, byte[] smallerArray,int from) {
@@ -162,7 +163,7 @@ public class NvChart extends Fragment {
             @Override
             public void onGlobalLayout() {
                 //Log.e("SurfaceViewSize","width "+mSpenSurfaceView.getWidth()+" height "+mSpenSurfaceView.getHeight());
-                loadNvData();
+                loadNvData(cData);
                 observer.removeOnGlobalLayoutListener(this);
             }
         });
@@ -219,7 +220,7 @@ public class NvChart extends Fragment {
 
         Log.e("SurfaceViewSize","width "+mSpenSurfaceView.getWidth()+" height "+mSpenSurfaceView.getHeight());
         Log.e("rect","width "+rect.width());
-        Log.e("mSpenSurfaceView.getWidth()/rect.width()","= "+(float)((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
+        //Log.e("mSpenSurfaceView.getWidth()/rect.width()","= "+(float)((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
 
         mSpenSurfaceView.setZoom(rect.width()/2,rect.height()/2,((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
 
@@ -492,7 +493,7 @@ public class NvChart extends Fragment {
 
         Log.e("SurfaceViewSize","width "+mSpenSurfaceView.getWidth()+" height "+mSpenSurfaceView.getHeight());
         Log.e("rect","width "+rect.width());
-        Log.e("mSpenSurfaceView.getWidth()/rect.width()","= "+(float)((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
+        //Log.e("mSpenSurfaceView.getWidth()/rect.width()","= "+(float)((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
 
         mSpenSurfaceView.setZoom(rect.width()/2,rect.height()/2,((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
 
@@ -596,7 +597,7 @@ public class NvChart extends Fragment {
 
     }
 
-    private void loadNvData(){
+    private void loadNvData(String Data){
         long start = System.currentTimeMillis();
         double packetLength =0;
         double pointStrokeTime=0;
@@ -607,7 +608,7 @@ public class NvChart extends Fragment {
         try{
 
 
-            NvData nvData = new NvData(mContext,mSpenPageDoc);
+            NvData nvData = new NvData(mContext,mSpenPageDoc,Data);
             initSpen(nvData);
 
             packetLength = nvData.getDataSize();
