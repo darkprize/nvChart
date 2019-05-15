@@ -21,4 +21,21 @@
     <string name="setting_version">버전 정보</string>
     <string name="setting_teamviewer">원격 지원 받기</string>
     <string name="setting_null"> </string>
+
+    //Tool Const
+    <string name="TOOL_TEXT">TOOL_TEXT</string>
+    <string name="TOOL_PEN">TOOL_PEN</string>
+    <string name="TOOL_IMAGE">TOOL_IMAGE</string>
+    <string name="TOOL_MARKER">TOOL_MARKER</string>
+    <string name="TOOL_STROKE">TOOL_STROKE</string>
+    <string name="TOOL_COLOR">TOOL_COLOR</string>
+    <string name="TOOL_SELECT">TOOL_SELECT</string>
+    <string name="TOOL_ERASER">TOOL_ERASER</string>
+    <string name="TOOL_SAVE">TOOL_SAVE</string>
+
+    <string name="TOOL_PASTE">붙여넣기</string>
+    <string name="TOOL_CUT">잘라내기</string>
+    <string name="TOOL_COPY">복사</string>
+    <string name="TOOL_DELETE">삭제</string>
+
 </resources>

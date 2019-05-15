@@ -3,8 +3,12 @@ package andcom.nvchart.nvChart;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -12,28 +16,34 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Display;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.jpegkit.Jpeg;
+import com.jpegkit.JpegFile;
+import com.jpegkit.JpegKit;
 import com.samsung.android.sdk.SsdkUnsupportedException;
+import com.samsung.android.sdk.composer.SpenComposerView;
+import com.samsung.android.sdk.composer.SpenScrollListener;
+import com.samsung.android.sdk.composer.document.SpenSDoc;
 import com.samsung.android.sdk.pen.Spen;
 import com.samsung.android.sdk.pen.SpenSettingPenInfo;
+import com.samsung.android.sdk.pen.SpenSettingTextInfo;
 import com.samsung.android.sdk.pen.document.SpenNoteDoc;
 import com.samsung.android.sdk.pen.document.SpenObjectBase;
 import com.samsung.android.sdk.pen.document.SpenObjectImage;
@@ -42,11 +52,18 @@ import com.samsung.android.sdk.pen.document.SpenObjectStroke;
 import com.samsung.android.sdk.pen.document.SpenObjectTextBox;
 import com.samsung.android.sdk.pen.document.SpenPageDoc;
 import com.samsung.android.sdk.pen.document.textspan.SpenFontSizeSpan;
+import com.samsung.android.sdk.pen.document.textspan.SpenForegroundColorSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenLineSpacingParagraph;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextParagraphBase;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextSpanBase;
+import com.samsung.android.sdk.pen.engine.SpenContextMenuItemInfo;
 import com.samsung.android.sdk.pen.engine.SpenControlBase;
+import com.samsung.android.sdk.pen.engine.SpenControlListener;
+import com.samsung.android.sdk.pen.engine.SpenFlickListener;
+import com.samsung.android.sdk.pen.engine.SpenLongPressListener;
+import com.samsung.android.sdk.pen.engine.SpenPageDragListener;
 import com.samsung.android.sdk.pen.engine.SpenSurfaceView;
+import com.samsung.android.sdk.pen.engine.SpenTextChangeListener;
 import com.samsung.android.sdk.pen.engine.SpenTouchListener;
 import com.samsung.android.sdk.pen.settingui.SpenSettingPenLayout;
 import com.samsung.android.sdk.pen.settingui.SpenSettingRemoverLayout;
@@ -66,9 +83,25 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
 import andcom.nvchart.ASyncImageSocket;
+import andcom.nvchart.MainActivity;
+import andcom.nvchart.MakeJSONData;
+import andcom.nvchart.MsgType;
+import andcom.nvchart.NvListRecyclerAdapter;
+import andcom.nvchart.Prefer;
 import andcom.nvchart.R;
+import andcom.nvchart.ToolButtonListener;
+import andcom.nvchart.util.FadeAnimation;
+import andcom.nvchart.util.LoadingFragment;
+import andcom.nvchart.util.PushAnimation;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.cardview.widget.CardView;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import cn.pedant.SweetAlert.SweetAlertDialog;
+import es.dmoral.toasty.Toasty;
 
-public class NvChart extends Fragment {
+public class NvChart extends LoadingFragment implements ToolButtonListener {
     private static final String FRAGMENT_NAME="NVCHART";
     private static final String TAG="NVCHART";
     private final int MODE_PEN = 0;
@@ -76,6 +109,16 @@ public class NvChart extends Fragment {
     private final int MODE_TEXT_OBJ = 2;
     private final int MODE_SELECTION = 3;
     int READ_STORAGE_PERMISSION = 11;
+
+    private static final int SWIPE_MIN_DISTANCE = 120;
+    private static final int SWIPE_MAX_OFF_PATH = 250;
+    private static final int SWIPE_THRESHOLD_VELOCITY = 200;
+
+    private final int CONTEXT_MENU_PASTE_ID = 10;
+    private final int CONTEXT_MENU_CUT_ID = 11;
+    private final int CONTEXT_MENU_COPY_ID = 12;
+    private final int CONTEXT_MENU_DELETE_ID = 13;
+
 
     String state ;
     private int mToolType = SpenSurfaceView.TOOL_SPEN;
@@ -90,7 +133,7 @@ public class NvChart extends Fragment {
     private Activity activity;
     private SpenNoteDoc mSpenNoteDoc;
     private SpenPageDoc mSpenPageDoc;
-    private SpenSurfaceView mSpenSurfaceView;
+    static private SpenSurfaceView mSpenSurfaceView;
     private SpenSettingPenLayout mPenSettingView;
     private ImageView imageView;
     private ImageView keyboard,penBtn,image,marker,penSel,eraser;
@@ -98,6 +141,7 @@ public class NvChart extends Fragment {
     private SpenSettingRemoverLayout mEraserSettingView;
     private SpenSettingTextLayout mTextSettingView;
     private LinearLayout progressBar;
+    private CardView penOption,textOption;
     private ViewTreeObserver vto;
     boolean isSpenFeatureEnabled = false;
     PointF[] points;
@@ -105,16 +149,109 @@ public class NvChart extends Fragment {
     int[] timestamps;
     Rect rect;
     Jpeg jpg;
+    int layoutWidth;
+    NvData nvData;
+
+    static Context context;
 
     int load=2;
     static long transfer;
     boolean mMearsure = false;
 
     public static Handler handler;
+    GestureDetector gestuerDetector = null;
+
+    public String getNodekey() {
+        return nodekey;
+    }
+
+    public void setNodekey(String nodekey) {
+        this.nodekey = nodekey;
+    }
+
+    public int getPageNo() {
+        return pageNo;
+    }
+
+    public void setPageNo(String pageNo) {
+
+        this.pageNo = Integer.parseInt(pageNo);
+    }
+
+    public void setPageNo(int pageNo){
+
+        this.pageNo=pageNo;
+    }
+
+    public int getPageLastNo() {
+        return pageLastNo;
+    }
+
+    public void setPageLastNo(int pageLastNo) {
+        if(pageLastNo==0){
+            pageLastNo=1;
+        }
+        this.pageLastNo = pageLastNo;
+    }
+
+    public String getDB() {
+        return DB;
+    }
+
+    public void setDB(String DB) {
+        this.DB = DB;
+    }
+
+    public void setPageIndicator(){
+        sendMessage(MsgType.UPDATE_PAGE_NO,getPageNo()+"/"+getPageLastNo());
+    }
+
+    public String getChartNo() {
+        return chartNo;
+    }
+
+    public void setChartNo(String chartNo) {
+        this.chartNo = chartNo;
+    }
+
+
+    private String chartNo;
+    private String DB;
+    private String nodekey;
+    private int pageNo;
+    private int pageLastNo;
+
+    private String bLoadBackImage="1";
+
+    private JSONObject jData;
+
 
     public NvChart(){
         Log.e("NvChartConstruct","Load NvChartFragment");
 
+    }
+
+    enum TOOL_NAME {
+        TEXT(R.string.TOOL_TEXT),
+        PEN(R.string.TOOL_PEN),
+        IMAGE(R.string.TOOL_IMAGE),
+        MARKER(R.string.TOOL_MARKER),
+        STROKE(R.string.TOOL_STROKE),
+        COLOR(R.string.TOOL_COLOR),
+        SELECT(R.string.TOOL_SELECT),
+        ERASER(R.string.TOOL_ERASER);
+
+        private int resourceId;
+
+        private TOOL_NAME(int id)  {
+            resourceId = id;
+        }
+
+        @Override
+        public String toString() {
+            return NvChart.context.getString(resourceId);
+
+        }
     }
 
     @Override
@@ -123,7 +260,131 @@ public class NvChart extends Fragment {
         Log.i(TAG,"OnCreate call");
 
 
-        this.cData = getArguments().getString("DATA");
+        /*this.cData = getArguments().getString("DATA");
+
+        try{
+            jData = new JSONObject(cData);
+            setChartNo(jData.getString("ND_CHARTNO"));
+            setDB(jData.getString("DB"));
+            setNodekey(jData.getString("ND_NODEKEY"));
+            setPageNo(jData.getString("ND_PAGENO"));
+            setPageLastNo(NvListRecyclerAdapter.getInstance().getPageCnt(jData.getString("ND_NODEKEY")));
+
+            setPageIndicator();
+
+        }catch (JSONException je ){
+            je.printStackTrace();
+        }*/
+
+    }
+    private void setJData(String jdata){
+        try{
+            jData = new JSONObject(jdata);
+
+
+            //setChartNo(jData.getString("ND_CHARTNO"));
+            //setDB(jData.getString("DB"));
+
+            if(jData.getString("ND_NODEKEY").equals(getNodekey())){
+                bLoadBackImage = "0";
+            }else{
+                bLoadBackImage = "1";
+            }
+            //setNodekey(jData.getString("ND_NODEKEY"));
+            //setPageNo(jData.getString("ND_PAGENO"));
+
+            confirmSaveBeforeRefresh(jData.getString("ND_CHARTNO"),
+                    jData.getString("DB"),
+                    jData.getString("ND_NODEKEY"),
+                    Integer.parseInt(jData.getString("ND_PAGENO")));
+
+
+            //setPageLastNo(NvListRecyclerAdapter.getInstance().getPageCnt(jData.getString("ND_NODEKEY")));
+            //refreshChart();
+
+        }catch (JSONException je){
+            je.printStackTrace();
+        }
+    }
+    public void refreshChart(){
+
+        try{
+            //
+
+
+            jData.put("ND_CHARTNO",getChartNo());
+            jData.put("DB",getDB());
+            jData.put("ND_NODEKEY",getNodekey());
+            jData.put("ND_PAGENO",getPageNo());
+            jData.put("BACK_IMAGE",bLoadBackImage);
+
+            setPageLastNo(NvListRecyclerAdapter.getInstance().getPageCnt(getNodekey()));
+            NvListRecyclerAdapter.getInstance().setSeletedPosition(NvListRecyclerAdapter.getInstance().getPageIndex(getNodekey()));
+            NvListRecyclerAdapter.getInstance().notifyDataSetChanged();
+            loadNvData(jData.toString());
+
+            setPageIndicator();
+
+        }catch (JSONException je){
+            je.printStackTrace();
+        }
+    }
+
+    private void confirmSaveBeforeRefresh(final String chartNo_,final String db_,final String nodekey_,final int pageno_){
+
+        //순서
+        //바뀐거 있는지 확인
+        //true:다이얼로그 띄움->선택에 따라 진행
+        //false:그대로 진행
+
+        //refresh 할 경우-> 차트넘버,db,nodekey,pageno,
+        if(isChanged()){
+
+            AlertDialog.Builder dialog = new AlertDialog.Builder(mContext);
+            dialog.setTitle("저장 확인");
+            dialog.setMessage("변경된 내용이 있습니다. 저장하시겠습니까?");
+            dialog.setPositiveButton("저장", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    saveChart();
+
+                    setChartNo(chartNo_);
+                    setDB(db_);
+                    setNodekey(nodekey_);
+                    setPageNo(pageno_);
+
+                    refreshChart();
+                }
+            });
+            dialog.setNeutralButton("저장 안함", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    setChartNo(chartNo_);
+                    setDB(db_);
+                    setNodekey(nodekey_);
+                    setPageNo(pageno_);
+
+                    refreshChart();
+                }
+            });
+            dialog.setNegativeButton("취소", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    return;
+                }
+            });
+            dialog.setCancelable(false);
+            dialog.show();
+        }else{
+
+            setChartNo(chartNo_);
+            setDB(db_);
+            setNodekey(nodekey_);
+            setPageNo(pageno_);
+
+            refreshChart();
+        }
 
     }
     public int indexOf(byte[] outerArray, byte[] smallerArray,int from) {
@@ -139,6 +400,8 @@ public class NvChart extends Fragment {
         }
         return -1;
     }
+
+
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -155,8 +418,10 @@ public class NvChart extends Fragment {
         initView();
 
         handler = new UIHandler();
-
+        this.context = getContext();
+/*
         BaseFrameLayout asd = (BaseFrameLayout)getView().findViewById(R.id.spenViewContainer);
+
         final ViewTreeObserver observer = asd.getViewTreeObserver();
 
         observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -166,11 +431,370 @@ public class NvChart extends Fragment {
                 loadNvData(cData);
                 observer.removeOnGlobalLayoutListener(this);
             }
-        });
+        });*/
 
 
     }
 
+    private void close_penOption(View v){
+
+        if(penOption.getVisibility() == View.VISIBLE){
+            FadeAnimation a = new FadeAnimation(penOption,v, 500, PushAnimation.COLLAPSE);
+            penOption.startAnimation(a);
+        }
+        if(textOption.getVisibility() == View.VISIBLE){
+            FadeAnimation a = new FadeAnimation(penOption,v, 500, PushAnimation.COLLAPSE);
+            textOption.startAnimation(a);
+        }
+    }
+    public void onClicked(View v){
+        String tag = v.getTag().toString();
+        Log.e("NvChart", tag + " clicked");
+
+        if(mSpenSurfaceView==null || mSpenPageDoc==null)
+            return;
+
+        LinearLayout vp = (LinearLayout) v.getParent();
+        if(vp instanceof LinearLayout && vp.getTag() != null) {
+            if (vp.getTag().equals("top_tool_layout")) {
+
+                for (int i = 0; i < vp.getChildCount(); i++) {
+                    vp.getChildAt(i).setSelected(false);
+                }
+                penOption.setVisibility(View.GONE);
+                textOption.setVisibility(View.GONE);
+
+                RelativeLayout relativeLayout = (RelativeLayout) penOption.getChildAt(0);
+                LinearLayout temp = (LinearLayout) relativeLayout.getChildAt(0);
+                LinearLayout stroke = (LinearLayout) temp.getChildAt(1);
+                LinearLayout color = (LinearLayout) temp.getChildAt(0);
+
+                TextView close = (TextView) relativeLayout.getChildAt(1);
+
+
+                textOption.setVisibility(View.GONE);
+
+                RelativeLayout trelativeLayout = (RelativeLayout) textOption.getChildAt(0);
+                LinearLayout ttemp = (LinearLayout) trelativeLayout.getChildAt(0);
+                LinearLayout tcolor = (LinearLayout) ttemp.getChildAt(0);
+
+                TextView tclose = (TextView) trelativeLayout.getChildAt(1);
+
+                close.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        FadeAnimation a = new FadeAnimation(penOption, v, 500, PushAnimation.COLLAPSE);
+                        penOption.startAnimation(a);
+                    }
+                });
+                tclose.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        FadeAnimation a = new FadeAnimation(textOption, v, 500, PushAnimation.COLLAPSE);
+                        textOption.startAnimation(a);
+                    }
+                });
+
+                for (int i = 0; i < stroke.getChildCount(); i++) {
+                    stroke.getChildAt(i).setSelected(false);
+                }
+                for (int i = 0; i < color.getChildCount(); i++) {
+                    color.getChildAt(i).setSelected(false);
+                }
+
+                close_penOption(null);
+
+                if (TOOL_NAME.TEXT.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    v.setSelected(true);
+                    Prefer.setPref("PenMode", SpenSurfaceView.ACTION_TEXT);
+
+                    mMode = MODE_TEXT_OBJ;
+
+                    if(textOption.getVisibility() != View.VISIBLE){
+                        FadeAnimation a = new FadeAnimation(textOption,v,500,PushAnimation.EXPAND);
+                        textOption.startAnimation(a);
+
+                        for (int i = 0; i < tcolor.getChildCount(); i++) {
+                            ImageButton btnColor = (ImageButton) tcolor.getChildAt(i);
+
+                            btnColor.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    LinearLayout vp = (LinearLayout) v.getParent();
+                                    for (int i = 0; i < vp.getChildCount(); i++) {
+                                        vp.getChildAt(i).setSelected(false);
+                                    }
+                                    v.setSelected(true);
+
+                                    int textColor = NvConstant.getColor(3, Integer.parseInt(v.getTag().toString()));
+                                    Prefer.setPref("TextColor", textColor);
+                                    Prefer.setPref("TextColorTag", v.getTag().toString());
+
+
+                                }
+                            });
+                            if (btnColor.getTag().toString().equals(Prefer.getPrefString("TextColorTag", "0"))) {
+                                btnColor.setSelected(true);
+                            }
+                        }
+                    }
+
+                }
+                if (TOOL_NAME.PEN.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    v.setSelected(true);
+                    Prefer.setPref("PenMode", SpenSurfaceView.ACTION_STROKE);
+                    Prefer.setPref("PenName", "com.samsung.android.sdk.pen.pen.preload.InkPen");
+                    mMode = MODE_PEN;
+
+
+                    if (penOption.getVisibility() != View.VISIBLE) {
+                        FadeAnimation a = new FadeAnimation(penOption, v, 500, PushAnimation.EXPAND);
+                        penOption.startAnimation(a);
+
+
+                        for (int i = 0; i < stroke.getChildCount(); i++) {
+                            ImageButton btnStroke = (ImageButton) stroke.getChildAt(i);
+
+                            btnStroke.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Log.w("click", "" + v.getTag().toString());
+                                    LinearLayout vp = (LinearLayout) v.getParent();
+                                    for (int i = 0; i < vp.getChildCount(); i++) {
+                                        vp.getChildAt(i).setSelected(false);
+                                    }
+                                    v.setSelected(true);
+
+                                    float penSize = NvConstant.getPenSize(NvConstant.PEN, Integer.parseInt(v.getTag().toString()));
+                                    Prefer.setPref("PenSize", penSize);
+                                    Prefer.setPref("PenSizeTag", v.getTag().toString());
+                                    setPenInfo();
+                                }
+                            });
+                            if (btnStroke.getTag().toString().equals(Prefer.getPrefString("PenSizeTag", "1"))) {
+                                btnStroke.setSelected(true);
+                            }
+                        }
+                        for (int i = 0; i < color.getChildCount(); i++) {
+                            ImageButton btnColor = (ImageButton) color.getChildAt(i);
+
+                            btnColor.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    LinearLayout vp = (LinearLayout) v.getParent();
+                                    for (int i = 0; i < vp.getChildCount(); i++) {
+                                        vp.getChildAt(i).setSelected(false);
+                                    }
+                                    v.setSelected(true);
+
+                                    int penColor = NvConstant.getColor(NvConstant.PEN, Integer.parseInt(v.getTag().toString()));
+                                    Prefer.setPref("PenColor", penColor);
+                                    Prefer.setPref("PenColorTag", v.getTag().toString());
+
+
+                                    setPenInfo();
+                                }
+                            });
+                            if (btnColor.getTag().toString().equals(Prefer.getPrefString("PenColorTag", "0"))) {
+                                btnColor.setSelected(true);
+                            }
+                        }
+
+                    }
+
+
+                }
+                if (TOOL_NAME.MARKER.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    Prefer.setPref("PenMode", SpenSurfaceView.ACTION_STROKE);
+                    Prefer.setPref("PenName", "com.samsung.android.sdk.pen.pen.preload.Marker");
+                    v.setSelected(true);
+                    mMode = MODE_PEN;
+
+                    if (penOption.getVisibility() != View.VISIBLE) {
+                        FadeAnimation a = new FadeAnimation(penOption, v, 500, PushAnimation.EXPAND);
+                        penOption.startAnimation(a);
+
+
+                        for (int i = 0; i < stroke.getChildCount(); i++) {
+                            ImageButton btnStroke = (ImageButton) stroke.getChildAt(i);
+
+                            btnStroke.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Log.w("click", "" + v.getTag().toString());
+                                    LinearLayout vp = (LinearLayout) v.getParent();
+                                    for (int i = 0; i < vp.getChildCount(); i++) {
+                                        vp.getChildAt(i).setSelected(false);
+                                    }
+                                    v.setSelected(true);
+
+                                    float penSize = NvConstant.getPenSize(2, Integer.parseInt(v.getTag().toString()));
+                                    Prefer.setPref("MarkerSize", penSize);
+                                    Prefer.setPref("MarkerSizeTag", v.getTag().toString());
+                                    setPenInfo();
+                                }
+                            });
+                            if (btnStroke.getTag().toString().equals(Prefer.getPrefString("MarkerSizeTag", "1"))) {
+                                btnStroke.setSelected(true);
+                            }
+                        }
+                        for (int i = 0; i < color.getChildCount(); i++) {
+                            ImageButton btnColor = (ImageButton) color.getChildAt(i);
+
+                            btnColor.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    LinearLayout vp = (LinearLayout) v.getParent();
+                                    for (int i = 0; i < vp.getChildCount(); i++) {
+                                        vp.getChildAt(i).setSelected(false);
+                                    }
+                                    v.setSelected(true);
+
+                                    int penColor = NvConstant.getColor(2, Integer.parseInt(v.getTag().toString()));
+                                    Prefer.setPref("MarkerColor", penColor);
+                                    Prefer.setPref("MarkerColorTag", v.getTag().toString());
+
+
+                                    setPenInfo();
+                                }
+                            });
+                            if (btnColor.getTag().toString().equals(Prefer.getPrefString("MarkerColorTag", "0"))) {
+                                btnColor.setSelected(true);
+                            }
+                        }
+
+                    }
+
+
+                }
+                if (TOOL_NAME.IMAGE.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    v.setSelected(true);
+                    mMode = MODE_IMG_OBJ;
+
+                }
+                if (TOOL_NAME.STROKE.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    v.setSelected(true);    //사용x
+
+                }
+                if (TOOL_NAME.COLOR.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    v.setSelected(true);
+
+                }
+                if (TOOL_NAME.SELECT.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    v.setSelected(true);
+                    Prefer.setPref("PenMode", SpenSurfaceView.ACTION_SELECTION);
+
+                    mMode = MODE_SELECTION;
+
+                }
+                if (TOOL_NAME.ERASER.toString().equals(tag)) {
+                    Log.e("NvChart", tag + " clicked");
+                    Prefer.setPref("PenMode", SpenSurfaceView.ACTION_STROKE_REMOVER);
+                    v.setSelected(true);
+
+                }
+
+            }
+        }
+
+        if(tag.equals("first")){
+            confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),1);
+            bLoadBackImage ="1";
+        }
+        if(tag.equals("prev")){
+            //이전 페이지
+            if(getPageNo()>1){
+                bLoadBackImage ="1";
+                confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),getPageNo()-1);
+            }
+
+        }
+        if(tag.equals("next")){
+            if(getPageNo()<getPageLastNo()){
+                bLoadBackImage ="1";
+                confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),getPageNo()+1);
+            }
+        }
+        if(tag.equals("last")){
+            bLoadBackImage ="1";
+            confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),getPageLastNo());
+
+            refreshChart();
+        }
+
+
+
+        if(tag.equals("undo")){
+            Log.w("NvChart","click undo");
+            if(mSpenPageDoc.isUndoable()){
+                SpenPageDoc.HistoryUpdateInfo[] userData = mSpenPageDoc.undo();
+                mSpenSurfaceView.updateUndo(userData);
+            }
+        }
+
+        if(tag.equals("redo")){
+            Log.w("NvChart","click redo");
+            if(mSpenPageDoc.isRedoable()){
+                SpenPageDoc.HistoryUpdateInfo[] userData = mSpenPageDoc.redo();
+                mSpenSurfaceView.updateRedo(userData);
+            }
+        }
+        if(tag.equals("new")){
+            Log.w("NvChart","click new");
+            setPageLastNo(getPageLastNo()+1);
+            setPageNo(getPageLastNo());
+
+            refreshChart();
+        }
+        if(tag.equals("save")){
+            Log.w("NvChart","click save");
+
+            saveChart();
+            //refreshChart();
+
+        }
+        setPenInfo();
+        mSpenSurfaceView.update();
+
+    }
+    private void setPenInfo(){
+        mSpenSurfaceView.closeControl();
+
+        mSpenSurfaceView.setToolTypeAction(mToolType, Prefer.getPrefInt("PenMode",SpenSurfaceView.ACTION_STROKE));
+        SpenSettingPenInfo mPenInfo = new SpenSettingPenInfo();
+        String penName = Prefer.getPrefString("PenName","com.samsung.android.sdk.pen.pen.preload.InkPen");
+        mPenInfo.name = penName;
+        mPenInfo.size = Prefer.getPrefFloat("PenSize",NvConstant.PEN_SIZE_1);
+        mPenInfo.color = Prefer.getPrefInt("PenColor",NvConstant.PEN_BLACK);
+
+        SpenSettingPenInfo mMarkerInfo = new SpenSettingPenInfo();
+        mMarkerInfo.name = penName;
+        mMarkerInfo.size = Prefer.getPrefFloat("MarkerSize",NvConstant.PEN_SIZE_1);
+        mMarkerInfo.color = Prefer.getPrefInt("MarkerColor",NvConstant.PEN_BLACK);
+
+        Log.w("penColor",penName+ "="+mPenInfo.color);
+        Log.w("penColor",penName+ "="+penName.contains("InkPen"));
+
+        if(penName.contains("InkPen")){
+            mSpenSurfaceView.setPenSettingInfo(mPenInfo);
+            Log.w("penColor",penName+ "="+mPenInfo.color);
+
+        }else{
+            mSpenSurfaceView.setPenSettingInfo(mMarkerInfo);
+
+        }
+        Log.w("penColor",penName+ "="+mPenInfo.color);
+        Log.w("penColor2","="+mSpenSurfaceView.getPenSettingInfo().color);
+
+
+    }
     private void initSpen(final NvData nvData){
 
         // Get the dimensions of the screen.
@@ -190,6 +814,7 @@ public class NvChart extends Fragment {
             mSpenNoteDoc =
                     new SpenNoteDoc(mContext, rect.width(), rect.height());
         } catch (IOException e) {
+            Log.e("initSpen","error1");
             Toast.makeText(mContext, "Cannot create new NoteDoc.",
                     Toast.LENGTH_SHORT).show();
             e.printStackTrace();
@@ -205,7 +830,10 @@ public class NvChart extends Fragment {
 
         // Set PageDoc to View.
         mSpenSurfaceView.setPageDoc(mSpenPageDoc,true);
-        initPenSettingInfo();
+
+        //initPenSettingInfo();
+
+
 
         if(isSpenFeatureEnabled == false) {
             mToolType = SpenSurfaceView.TOOL_FINGER;
@@ -226,125 +854,133 @@ public class NvChart extends Fragment {
 
         mSpenSurfaceView.update();
 
-        btn2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.e("SurfaceViewSize","width "+mSpenSurfaceView.getWidth()+" height "+mSpenSurfaceView.getHeight());
-                /*if(load==1){
-                    loadNvData();
-                    load=2;
-                }else{
-                    loadNvData2();
-                    load=1;
-                }*/
-                try{
-                    JSONObject sendData = new JSONObject();
-                    String cSendData = new String();
+    }
+    private boolean isChanged(){
+        if(mSpenPageDoc == null || !mSpenPageDoc.isObjectLoaded()){
+            return false;
+        }
+        ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
 
-                    sendData.put("User","andcom3");
-                    sendData.put("UserPhone","010-1234-5678");
-                    sendData.put("구분코드","4");
-                    sendData.put("DB","1");
-                    sendData.put("ND_CHARTNO","00000001");
-                    sendData.put("ND_NODEKEY","C0101");
-                    sendData.put("ND_PAGENO","001");
-                    JSONArray arrStrokes = new JSONArray();
-                    JSONArray arrTextboxes = new JSONArray();
-                    JSONArray arrImage = new JSONArray();
-                    ArrayList<Bitmap> bitmaps = new ArrayList<>();
-                    int imageIndex = 0;
-                    ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
+        boolean isChange=false;
+        for(SpenObjectBase objectBase : objects){
+            Log.e("saveChart","changed ? "+objectBase.isChanged());
+            if(objectBase.isChanged()){
+                isChange=true;
+                //break;
+            }
+        }
+        return isChange;
+    }
+    private boolean saveChart(){
+        boolean saveSuccess=false;
+        try{
+            JSONObject sendData = MakeJSONData.get(MsgType.SAVE_NVCHART,getDB(),getChartNo(),getNodekey(),String.valueOf(getPageNo()));
+            String cSendData = new String();
 
-
-                    for(SpenObjectBase objectBase : objects){
-
-                        if(objectBase.getType()==SpenPageDoc.FIND_TYPE_STROKE){
-                            SpenObjectStroke stroke = (SpenObjectStroke)objectBase;
-                            String cStroke = new String();
-                            String penMode = stroke.getPenName().contains("InkPen") ? "1" : "2";
-                            String penSize = new String();
-                            String penColor = new String();
-                            if(penMode.equals("1")){
-                                penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
-                                penColor= NvConstant.getPenColorCode(stroke.getColor());
-
-                            }else{
-                                penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
-                                penColor= NvConstant.getPenColorCode(stroke.getColor());
-                            }
-                            cStroke = getDecToHex(penMode+penSize,2)+getDecToHex(penColor,2);       //4자리 헤더 생성
+            JSONArray arrStrokes = new JSONArray();
+            JSONArray arrTextboxes = new JSONArray();
+            JSONArray arrImage = new JSONArray();
+            ArrayList<Bitmap> bitmaps = new ArrayList<>();
+            int imageIndex = 0;
+            ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
 
 
-                            float[] pointsX = stroke.getXPoints();
-                            float[] pointsY = stroke.getYPoints();
+            if(!isChanged()){
+                Toasty.info(context,"변경 사항이 없습니다.").show();
+                return false;
+            }
+            for(SpenObjectBase objectBase : objects){
 
-                            for(int i =0 ; i < pointsX.length ; i++){
-                                float tempX = pointsX[i]*NvData.ScaleWidth/jpg.getWidth()+NvData.ScaleLeft;
-                                float tempY = pointsY[i]*NvData.ScaleHeight/jpg.getHeight()+NvData.ScaleTop;
-                                cStroke +=getDecToHex(String.valueOf((long)tempX),4);
-                                cStroke +=getDecToHex(String.valueOf((long)tempY),4);
-                            }
-                            JSONObject jStroke = new JSONObject();
-                            jStroke.put("BYTE",cStroke);
-                            arrStrokes.put(jStroke);
+                if(objectBase.getType()==SpenPageDoc.FIND_TYPE_STROKE){
+                    SpenObjectStroke stroke = (SpenObjectStroke)objectBase;
+                    String cStroke = new String();
+                    String penMode = stroke.getPenName().contains("InkPen") ? "1" : "2";
+                    String penSize = new String();
+                    String penColor = new String();
+                    if(penMode.equals("1")){
+                        penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
+                        penColor= NvConstant.getPenColorCode(stroke.getColor());
 
-                        }
-                        if(objectBase.getType()==SpenPageDoc.FIND_TYPE_TEXT_BOX && objectBase.isSelectable()){
-                            SpenObjectTextBox textBox = (SpenObjectTextBox) objectBase;
-                            JSONObject jTextBox = new JSONObject();
-                            jTextBox.put("COLOR",NvConstant.getPenColorCode(textBox.getTextColor()));
-                            RectF rect = textBox.getRect();
-                            String desc = textBox.getText();
-                            int count=new Integer(1);
-                            int i=new Integer(0);
+                        Log.w("pen Color","color "+stroke.getColor() + " ->" + penColor);
 
-                            while((i=desc.indexOf("\n",i+1))!=-1){
-                                count++;
-                            }
+                    }else{
+                        penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
+                        penColor= NvConstant.getPenColorCode(stroke.getColor());
+                    }
+                    cStroke = getDecToHex(penMode+penSize,2)+getDecToHex(penColor,2);       //4자리 헤더 생성
 
-                            rect.bottom = (41+nvData.ScaleHeight/69*count);
 
-                            jTextBox.put("POSITION",nvData.getOriginPosition(rect,NvConstant.TEXT_OBJ));
+                    float[] pointsX = stroke.getXPoints();
+                    float[] pointsY = stroke.getYPoints();
 
-                            jTextBox.put("DESC",textBox.getText().replace("\n","\r\n"));
+                    for(int i =0 ; i < pointsX.length ; i++){
+                        float tempX = pointsX[i]*NvData.ScaleWidth/jpg.getWidth()+NvData.ScaleLeft;
+                        float tempY = pointsY[i]*NvData.ScaleHeight/jpg.getHeight()+NvData.ScaleTop;
+                        cStroke +=getDecToHex(String.valueOf((long)tempX),4);
+                        cStroke +=getDecToHex(String.valueOf((long)tempY),4);
+                    }
+                    JSONObject jStroke = new JSONObject();
+                    jStroke.put("BYTE",cStroke);
+                    arrStrokes.put(jStroke);
 
-                            arrTextboxes.put(jTextBox);
-                        }
-                        if(objectBase.getType()==3){
+                }
+                if(objectBase.getType()==SpenPageDoc.FIND_TYPE_TEXT_BOX && objectBase.isSelectable() ){
+                    SpenObjectTextBox textBox = (SpenObjectTextBox) objectBase;
+                    JSONObject jTextBox = new JSONObject();
+                    jTextBox.put("COLOR",NvConstant.getTextColorCode(textBox.getTextColor()));
+                    RectF rect = textBox.getRect();
+                    String desc = textBox.getText();
+                    int count=new Integer(1);
+                    int i=new Integer(0);
+                    if(desc.equals("")){
+                        break;
+                    }
+                    while((i=desc.indexOf("\n",i+1))!=-1){
+                        count++;
+                    }
 
-                            SpenObjectImage imageObject = (SpenObjectImage) objectBase;
-                            JSONObject jImage = new JSONObject();
-                            RectF rect = imageObject.getRect();
-                            jImage.put("POSITION",nvData.getOriginPosition(rect,NvConstant.IMAGE_OBJ));
-                            String index=String.format("%03d",++imageIndex);
-                            Log.e("Imege","Index "+index);
+                    rect.bottom = (41+nvData.ScaleHeight/69*count);
+
+                    jTextBox.put("POSITION",nvData.getOriginPosition(rect,NvConstant.TEXT_OBJ));
+
+                    jTextBox.put("DESC",textBox.getText().replace("\n","\r\n"));
+
+                    arrTextboxes.put(jTextBox);
+                }
+                if(objectBase.getType()==3){
+
+                    SpenObjectImage imageObject = (SpenObjectImage) objectBase;
+                    JSONObject jImage = new JSONObject();
+                    RectF rect = imageObject.getRect();
+                    jImage.put("POSITION",nvData.getOriginPosition(rect,NvConstant.IMAGE_OBJ));
+                    String index=String.format("%03d",++imageIndex);
+                    Log.e("Imege","Index "+index);
 
                             /*while(index.length()<3){
                                 index = "0"+index;
                             }*/
-                            jImage.put("INDEX",index);
-                            bitmaps.add(imageObject.getImage());
-                            arrImage.put(jImage);
-                        }
-                    }
-                    /*
+                    jImage.put("INDEX",index);
+                    bitmaps.add(imageObject.getImage());
+                    arrImage.put(jImage);
+                }
+            }
                     sendData.put("PenData",arrStrokes);
                     sendData.put("TextBox",arrTextboxes);
-                    sendData.put("Image",arrImage);*/
+                    sendData.put("Image",arrImage);
+/*
+            JSONObject temp = new JSONObject(nvData.cJsonData);
+            sendData.put("PenData",temp.getJSONArray("PenData"));
+            sendData.put("TextBox",temp.getJSONArray("TextBox"));
+            sendData.put("Image",temp.getJSONArray("Image"));*/
 
-                    JSONObject temp = new JSONObject(nvData.cJsonData);
-                    sendData.put("PenData",temp.getJSONArray("PenData"));
-                    sendData.put("TextBox",temp.getJSONArray("TextBox"));
-                    sendData.put("Image",temp.getJSONArray("Image"));
+            JSONArray image = sendData.getJSONArray("Image");
+            cSendData = sendData.toString(1).replace("\\/","/")+"\n";
 
-                    JSONArray image = sendData.getJSONArray("Image");
-                    cSendData = sendData.toString(1).replace("\\/","/")+"\n";
-
-                    byte[] bSendData = new byte[0];
-                    //bSendData=bitmapToByteArray(bitmaps.get(0));
-                    bSendData = cSendData.getBytes("EUC-KR");
-                    //bSendData = appendByte(bSendData,nvData.tempImage);   //받았던거 그대로 보내기
-                    Log.e("temp Length","길이 "+nvData.tempImage.length);
+            byte[] bSendData = new byte[0];
+            //bSendData=bitmapToByteArray(bitmaps.get(0));
+            bSendData = cSendData.getBytes("EUC-KR");
+            //bSendData = appendByte(bSendData,nvData.tempImage);   //받았던거 그대로 보내기
+            //Log.e("temp Length","길이 "+nvData.tempImage.length);
                     /*for(int i=0;i<image.length();i++){
                         String index = image.getJSONObject(i).getString("INDEX");
                         cSendData = cSendData + "<---AndcomData_Image"+index+"---\n";
@@ -352,37 +988,37 @@ public class NvChart extends Fragment {
 
                         cSendData = cSendData + "---AndcomData_Image"+index+"--->\n";
                     }*/
-                    for(int i=0;i<bitmaps.size();i++){
-                        Log.e("Index","index = "+ i);
-                        String index = image.getJSONObject(i).getString("INDEX");
-                        bSendData = appendByte(bSendData,("<---AndcomData_Image"+index+"---\r\n").getBytes()) ;
+            for(int i=0;i<bitmaps.size();i++){
+                Log.e("Index","index = "+ i);
+                String index = image.getJSONObject(i).getString("INDEX");
+                bSendData = appendByte(bSendData,("<---AndcomData_Image"+index+"---\r\n").getBytes()) ;
 
-                        bSendData = appendByte(bSendData,bitmapToByteArray(bitmaps.get(i)));
-                        bSendData = appendByte(bSendData,"\r\n".getBytes("EUC-KR"));
+                bSendData = appendByte(bSendData,bitmapToByteArray(bitmaps.get(i)));
+                bSendData = appendByte(bSendData,"\r\n".getBytes("EUC-KR"));
 
-                        bSendData = appendByte(bSendData,("---AndcomData_Image"+index+"--->\r\n").getBytes("EUC-KR"));
-                    }
-                    bSendData = appendByte(bSendData,"---AndcomData_END---".getBytes("EUC-KR"));
-                    int maxLogSize = 1000;
-                    for(int i = 0; i <= cSendData.length() / maxLogSize; i++) {
-                        int start = i * maxLogSize;
-                        int end = (i+1) * maxLogSize;
-                        end = end > cSendData.length() ? cSendData.length() : end;
-                        Log.v("SendData", cSendData.substring(start, end));
-                    }
-                    //Log.e("sendData",cSendData.toString().replace("\\/","/"));
+                bSendData = appendByte(bSendData,("---AndcomData_Image"+index+"--->\r\n").getBytes("EUC-KR"));
+            }
+            bSendData = appendByte(bSendData,"---AndcomData_END---".getBytes("EUC-KR"));
+            int maxLogSize = 1000;
+            for(int i = 0; i <= cSendData.length() / maxLogSize; i++) {
+                int start = i * maxLogSize;
+                int end = (i+1) * maxLogSize;
+                end = end > cSendData.length() ? cSendData.length() : end;
+                Log.v("SendData", cSendData.substring(start, end));
+            }
+            //Log.e("sendData",cSendData.toString().replace("\\/","/"));
 
-                    //test
+            //test
 
-                    //
+            //
 
-                    //전송하기
-                    //ASyncTextSocket aSyncTextSocket = new ASyncTextSocket((Activity) mContext,"192.168.10.109",80);
-                    //String result = aSyncTextSocket.execute(cSendData).get();
+            //전송하기
+            //ASyncTextSocket aSyncTextSocket = new ASyncTextSocket((Activity) mContext,"192.168.10.109",80);
+            //String result = aSyncTextSocket.execute(cSendData).get();
 
-                    //ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.186",1235);
-                    //ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.109",80);
-                    //String result = socket.execute(bSendData).get();
+            //ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.186",1235);
+            //ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.109",80);
+            //String result = socket.execute(bSendData).get();
                         /*File fTemp = new File(mContext.getFilesDir()+File.separator+"file");
                         byte[] btemp = new byte[(int)fTemp.length()];
 
@@ -391,27 +1027,35 @@ public class NvChart extends Fragment {
                         fis.close();
                         bSendData = appendByte(bSendData,btemp);
 */
-                    ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.109",80);
-                    String result = socket.execute(bSendData).get();
+            ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,Prefer.getPrefString("key_ip",""),Integer.parseInt(Prefer.getPrefString("key_port","80")));
+            String result = socket.execute(bSendData).get();
+            Log.e("saveChart","result = "+result);
 
-                    //ASyncImageSocket socket1 = new ASyncImageSocket((Activity) mContext,"192.168.10.186",1235);
-                    //String result1 = socket1.execute(bSendData).get();
+            if(result.contains("1")){
+                Toasty.info(context,"저장 성공").show();
+                saveSuccess =true;
+                mSpenPageDoc.clearChangedFlag();
+            }else{
+                JSONObject jResult = new JSONObject(result);
+                Toasty.error(context,"저장 실패. 다시 시도해주세요."+"\r\n원인:"+jResult.getString("Msg")).show();
+                saveSuccess=false;
+            }
 
-                }catch (JSONException je){
-                    je.printStackTrace();
-                }catch (ExecutionException ee){
-                    ee.printStackTrace();
-                }catch (InterruptedException ie){
-                    ie.printStackTrace();
-                }catch (UnsupportedEncodingException uee){
-                    uee.printStackTrace();
-                }/*catch (FileNotFoundException ffe){
+        }catch (JSONException je){
+            je.printStackTrace();
+        }catch (ExecutionException ee){
+            ee.printStackTrace();
+        }catch (InterruptedException ie){
+            ie.printStackTrace();
+        }catch (UnsupportedEncodingException uee){
+            uee.printStackTrace();
+        }/*catch (FileNotFoundException ffe){
                     ffe.printStackTrace();
                 }*/catch (IOException ioe){
-                    ioe.printStackTrace();
-                }
-            }
-        });
+            ioe.printStackTrace();
+        }
+
+        return saveSuccess;
     }
     public byte[] bitmapToByteArray( Bitmap $bitmap ) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream() ;
@@ -442,80 +1086,27 @@ public class NvChart extends Fragment {
         //return Base64.encodeToString(imageBytes, Base64.NO_WRAP);
     }
 
-
-
-    private void initSpen2(NvData2 nvData){
-
-        // Get the dimensions of the screen.
-        Display display = activity.getWindowManager().getDefaultDisplay();
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+ File.separator+"test2.jpg");
-        try{
-            jpg = nvData.getBackImageJpg();
-            rect = new Rect();
-
-            rect.set(0,0,(int)(jpg.getWidth()*5.08f),(int)(jpg.getHeight()*5.08f));
-        }catch (Exception ie){
-            ie.printStackTrace();
-        }
-
-        // Create SpenNoteDoc.
-        try {
-            mSpenNoteDoc =
-                    new SpenNoteDoc(mContext, rect.width(), rect.height());
-        } catch (IOException e) {
-            Toast.makeText(mContext, "Cannot create new NoteDoc.",
-                    Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // After adding a page to NoteDoc, get an instance and set it
-        // as a member variable.
-        mSpenPageDoc = mSpenNoteDoc.appendPage();
-        //mSpenPageDoc.setBackgroundColor(Color.TRANSPARENT);
-        //mSpenPageDoc.clearHistory();
-
-        // Set PageDoc to View.
-        mSpenSurfaceView.setPageDoc(mSpenPageDoc,true);
-        initPenSettingInfo();
-
-        if(isSpenFeatureEnabled == false) {
-            mToolType = SpenSurfaceView.TOOL_FINGER;
-            Toast.makeText(mContext,
-                    "Device does not support Spen. \n You can draw stroke by finger.",
-                    Toast.LENGTH_SHORT).show();
-        }else {
-            mToolType = SpenSurfaceView.TOOL_SPEN;
-        }
-        mSpenPageDoc.setBackgroundImage(nvData.getBackImageFile().getPath());
-        mSpenPageDoc.setBackgroundImageMode(SpenPageDoc.BACKGROUND_IMAGE_MODE_FIT);
-
-        Log.e("SurfaceViewSize","width "+mSpenSurfaceView.getWidth()+" height "+mSpenSurfaceView.getHeight());
-        Log.e("rect","width "+rect.width());
-        //Log.e("mSpenSurfaceView.getWidth()/rect.width()","= "+(float)((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
-
-        mSpenSurfaceView.setZoom(rect.width()/2,rect.height()/2,((float)mSpenSurfaceView.getWidth()/(float)rect.width()));
-
-        mSpenSurfaceView.update();
-
-    }
     private String getDecToHex(String dec,int length){
 
         Long intDec = Long.parseLong(dec);
+        //Log.e("getDecToHex","before  "+intDec);
+
         String returnValue =  Long.toHexString(intDec).toUpperCase();
         while(returnValue.length()<length){
             returnValue = "0" + returnValue;
         }
+        //Log.e("getDecToHex","after  "+returnValue);
+
         return returnValue;
     }
+
     private void initView(){
         mContext = getContext();
         activity = (Activity)mContext;
         btn2 = (Button)getView().findViewById(R.id.btn2);
         progressBar = (LinearLayout)getView().findViewById(R.id.progressBar);
 
-        keyboard = (ImageView)getView().findViewById(R.id.text);
+        /*keyboard = (ImageView)getView().findViewById(R.id.text);
         penBtn = (ImageView)getView().findViewById(R.id.pen);
         image = (ImageView)getView().findViewById(R.id.image);
         marker = (ImageView)getView().findViewById(R.id.marker);
@@ -533,8 +1124,10 @@ public class NvChart extends Fragment {
         penSel.setOnClickListener(mSelectionBtnClickListener);
         eraser.setOnClickListener(mEraserBtnClickListener);
         keyboard.setOnClickListener(mTextObjBtnClickListener);
-        marker.setOnClickListener(mMarkerBtnClickListener);
+        marker.setOnClickListener(mMarkerBtnClickListener);*/
 
+        penOption = (CardView)getActivity().findViewById(R.id.pen_option);
+        textOption = (CardView)getActivity().findViewById(R.id.text_option);
         int permissionCheck = ContextCompat.checkSelfPermission(mContext, Manifest.permission.READ_EXTERNAL_STORAGE);
         if(permissionCheck!= PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions((Activity) mContext,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},READ_STORAGE_PERMISSION);
@@ -545,6 +1138,7 @@ public class NvChart extends Fragment {
         //spen 초기화
         isSpenFeatureEnabled = false;
         Spen spenPackage = new Spen();
+
         try{
             spenPackage.initialize(mContext);
             isSpenFeatureEnabled = spenPackage.isFeatureEnabled(Spen.DEVICE_PEN);
@@ -560,43 +1154,178 @@ public class NvChart extends Fragment {
         RelativeLayout spenViewLayout = (RelativeLayout) getView().findViewById(R.id.spenViewLayout);
         FrameLayout spenViewContainer = (FrameLayout)getView().findViewById(R.id.spenViewContainer);
 
-        mPenSettingView = new SpenSettingPenLayout(mContext, new String(), spenViewLayout);
-        mEraserSettingView = new SpenSettingRemoverLayout(mContext, "", spenViewLayout);
+        //mPenSettingView = new SpenSettingPenLayout(mContext, new String(), spenViewLayout);
+        //mEraserSettingView = new SpenSettingRemoverLayout(mContext, "", spenViewLayout);
 
         //SpenView
 
         mSpenSurfaceView = new SpenSurfaceView(mContext);
         mSpenSurfaceView.setTouchListener(mPenTouchListener);
         mSpenSurfaceView.setPreTouchListener(onPreTouchSurfaceViewListener);
+        mSpenSurfaceView.setFlickListener(onFlickListener);
+        mSpenSurfaceView.setControlListener(spenControlListener);
 
         if(mSpenSurfaceView == null){
             Toast.makeText(mContext, "Cannot create new SpenView.",
                     Toast.LENGTH_SHORT).show();
         }
+
+
         // Create SelectionSettingView
-        mSelectionSettingView = new SpenSettingSelectionLayout(mContext, "", spenViewLayout);
+        //mSelectionSettingView = new SpenSettingSelectionLayout(mContext, "", spenViewLayout);
 
         // Create TextSettingView
-        HashMap<String, String> hashMapFont = new HashMap<String, String>();
+        /*HashMap<String, String> hashMapFont = new HashMap<String, String>();
         hashMapFont.put("Droid Sans Georgian", "/system/fonts/DroidSansGeorgian.ttf");
         hashMapFont.put("Droid Serif", "/system/fonts/DroidSerif-Regular.ttf");
         hashMapFont.put("Droid Sans", "/system/fonts/DroidSans.ttf");
         hashMapFont.put("Droid Sans Mono", "/system/fonts/DroidSansMono.ttf");
         mTextSettingView = (SpenSettingTextLayout) getView().findViewById(R.id.settingTextLayout);
-        mTextSettingView.initialize("", hashMapFont, spenViewLayout);
+        mTextSettingView.initialize("", hashMapFont, spenViewLayout);*/
 
-        spenViewContainer.addView(mPenSettingView);
-        spenViewContainer.addView(mSelectionSettingView);
-        spenViewContainer.addView(mEraserSettingView);
+        //spenViewContainer.addView(mPenSettingView);
+        //spenViewContainer.addView(mSelectionSettingView);
+        //spenViewContainer.addView(mEraserSettingView);
         //spenViewContainer.addView(mTextSettingView);
 
         spenViewLayout.addView(mSpenSurfaceView);
+        mSpenSurfaceView.setScrollBarEnabled(true);
+        mSpenSurfaceView.getHolder().setFormat(PixelFormat.TRANSPARENT);
+        //mPenSettingView.setCanvasView(mSpenSurfaceView);
+        //mTextSettingView.setCanvasView(mSpenSurfaceView);
 
-        mPenSettingView.setCanvasView(mSpenSurfaceView);
-        mTextSettingView.setCanvasView(mSpenSurfaceView);
+        gestuerDetector = new GestureDetector(mContext, new GestureDetector.OnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public void onShowPress(MotionEvent e) {
+
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                Log.e("gestureD","distanceX ="+distanceX + ", distanceY ="+distanceY+" , scrollbar pos=");
+
+                return false;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                Log.e("onFling","e1.getY() - e2.getY() ="+(e1.getY() - e2.getY())+", Math.abs(velocityY) ="+Math.abs(velocityY));
+
+                if(!e1.getDevice().getName().contains("sec_touchscreen")){
+                    return false;
+                }
+                try {
+                    /*if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH){
+
+                        return false;
+                    }*/
+                    // right to left swipe
+                    if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE
+                            && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                        Log.e("onFling","leftSwipe");
+                        return false;
+                    }
+                    // left to right swipe
+                    else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE
+                            && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                        Log.e("onFling","rightSwipe");
+                        return false;
+
+                    }
+
+                    // down to up swipe
+                    if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE
+                            && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
+                        Log.e("onFling","upSwipe");
+
+                        NvListRecyclerAdapter nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance();
+                        int nodeKey = nvListRecyclerAdapter.getSeletedPosition();
+                        if(nodeKey<nvListRecyclerAdapter.getItemCount()){
+                            setNodekey(nvListRecyclerAdapter.getNodeKey(nodeKey+1));
+                            setPageNo(nvListRecyclerAdapter.getPageCnt(nodeKey+1));
+                            bLoadBackImage="1";
+                            refreshChart();
+                        }else{
+
+                        }
+                        return false;
+
+                    }
+                    // up to down swipe
+                    else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE
+                            && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
+                        Log.e("onFling","downSwipe");
+
+                        NvListRecyclerAdapter nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance();
+                        int nodeKey = nvListRecyclerAdapter.getSeletedPosition();
+                        if(nodeKey!=0){
+                            setNodekey(nvListRecyclerAdapter.getNodeKey(nodeKey-1));
+                            setPageNo(nvListRecyclerAdapter.getPageCnt(nodeKey-1));
+                            bLoadBackImage="1";
+                            refreshChart();
+                        }else{
+
+                        }
+                        return false;
+
+
+                    }
+
+
+                } catch (Exception e) {
+
+                }
+                return false;
+            }
+        });
+
+    }
+    private void setSmartScroll(boolean enable){
+
+        // Define the region for Smart Scroll.
+        int width, height, w1, h1, w9, h9;
+        width = mSpenSurfaceView.getWidth();
+        height = mSpenSurfaceView.getHeight();
+        w1 = (int) (width * 0.1);
+        h1 = (int) (height * 0.1);
+        w9 = (int) (width * 0.9);
+        h9 = (int) (height * 0.9);
+
+        // Define the region for horizontal Smart Scroll.
+        Rect leftRegion = new Rect(0, 0, w1, height);
+        Rect rightRegion = new Rect(w9, 0, width, height);
+        mSpenSurfaceView.setHorizontalSmartScrollEnabled(enable,
+                leftRegion, rightRegion, 500, 10);
+
+        // Define the region for vertical Smart Scroll.
+        Rect topRegion = new Rect(0, 0, width, h1);
+        Rect bottomRegion = new Rect(0, h9, width, height);
+        mSpenSurfaceView.setVerticalSmartScrollEnabled(enable,
+                topRegion, bottomRegion, 500, 10);
 
     }
 
+    private void sendMessage(int msgWhat,Object msg){
+        Message message = MainActivity.handler.obtainMessage();
+        message.what=msgWhat;
+        message.obj=msg;
+        MainActivity.handler.sendMessage(message);
+    }
     private void loadNvData(String Data){
         long start = System.currentTimeMillis();
         double packetLength =0;
@@ -608,8 +1337,9 @@ public class NvChart extends Fragment {
         try{
 
 
-            NvData nvData = new NvData(mContext,mSpenPageDoc,Data);
+            nvData = new NvData(mContext,mSpenPageDoc,Data);
             initSpen(nvData);
+            setSmartScroll(true);
 
             packetLength = nvData.getDataSize();
             transfer =  System.currentTimeMillis()-start;
@@ -617,21 +1347,11 @@ public class NvChart extends Fragment {
             String[] arrStroke = nvData.getPenData();
 
 
-            SpenObjectTextBox textObj = new SpenObjectTextBox("12345");
-            RectF textPoint = new RectF(20,100,400,1800);
-            textObj.setRect(textPoint,false);
-            textObj.setFontSize(18);
-            //mSpenPageDoc.appendObject(textObj);
-            //mSpenPageDoc.selectObject(textObj);
-            //mSpenSurfaceView.update();
-
-            //Log.e("TestTextRect",            mSpenPageDoc.getObject(0).getRect().toString());
-
             double textStart = System.currentTimeMillis();
             for(SpenObjectTextBox object : nvData.getTextObjectData(NvConstant.TEXT_OBJ)){
                 mSpenPageDoc.appendObject(object);
                 //mSpenPageDoc.selectObject(object);
-                mSpenSurfaceView.update();
+                //mSpenSurfaceView.update();
                 Log.e("RectF-2",object.getRect().toString());
 
             }
@@ -646,16 +1366,18 @@ public class NvChart extends Fragment {
             }
             pointLabelTime = (System.currentTimeMillis()-labelStart)/1000.0000;
 
+
             double imageStart = System.currentTimeMillis();
             for(SpenObjectImage imageObject : nvData.getImageObjectData()){
                 mSpenPageDoc.appendObject(imageObject);
-                mSpenSurfaceView.update();
+                //mSpenSurfaceView.update();
             }
             pointImageTime = (System.currentTimeMillis()-imageStart)/1000.0000;
 
 
             long pointStart = System.currentTimeMillis();
             for(SpenObjectStroke object :nvData.getPenObjectData()){
+
                 mSpenPageDoc.appendObject(object);
             }
             pointStrokeTime = (System.currentTimeMillis()-pointStart)/1000.0000;
@@ -668,7 +1390,16 @@ public class NvChart extends Fragment {
             mSpenPageDoc.removeSelectedObject();
             mSpenSurfaceView.update();
 
+            mSpenPageDoc.clearChangedFlag();
+
             update = (System.currentTimeMillis()-updateStart)/1000.0000;
+
+            setPenInfo();
+
+            Message msg = handler.obtainMessage();
+            msg.what = MsgType.NVCHART_RELEASE;
+            msg.obj = false;
+            handler.sendMessage(msg);
 
         }catch(Exception e){
             Log.e("error",e.getMessage());
@@ -690,94 +1421,30 @@ public class NvChart extends Fragment {
 
         Toast.makeText(mContext,toast,Toast.LENGTH_LONG).show();
         Log.e("TimeDebug",toast);
-        //progressBar.setVisibility(View.GONE);
-
-    }private void loadNvData2(){
-        long start = System.currentTimeMillis();
-        double packetLength =0;
-        double pointStrokeTime=0;
-        double pointTextTime=0;
-        double pointLabelTime=0;
-        double pointImageTime=0;
-        double update=0;
-        try{
-
-
-            NvData2 nvData = new NvData2(mContext,mSpenPageDoc);
-            initSpen2(nvData);
-
-            packetLength = nvData.getDataSize();
-            transfer =  System.currentTimeMillis()-start;
-
-            String[] arrStroke = nvData.getPenData();
-
-
-            SpenObjectTextBox textObj = new SpenObjectTextBox("Width : " + jpg.getWidth() + "\nHeight : " + jpg.getHeight()+"\n");
-            RectF textPoint = new RectF(20,100,400,800);
-            textObj.setRect(textPoint,true);
-            textObj.setFontSize(18);
-            mSpenPageDoc.appendObject(textObj);
-            //mSpenPageDoc.selectObject(textObj);
-            mSpenSurfaceView.update();
-            double textStart = System.currentTimeMillis();
-            for(SpenObjectTextBox object : nvData.getTextObjectData(NvConstant.TEXT_OBJ)){
-                mSpenPageDoc.appendObject(object);
-            }
-            pointTextTime = (System.currentTimeMillis()-textStart)/1000.0000;
-
-            double labelStart = System.currentTimeMillis();
-            for(SpenObjectTextBox object : nvData.getTextObjectData(NvConstant.LABEL_OBJ)){
-                mSpenPageDoc.appendObject(object);
-                object.setSelectable(false);
-                object.setTextStyle(SpenObjectShape.HINT_TEXT_STYLE_BOLD);
-            }
-            pointLabelTime = (System.currentTimeMillis()-labelStart)/1000.0000;
-
-            double imageStart = System.currentTimeMillis();
-            for(SpenObjectImage imageObject : nvData.getImageObjectData()){
-                mSpenPageDoc.appendObject(imageObject);
-                mSpenSurfaceView.update();
-            }
-            pointImageTime = (System.currentTimeMillis()-imageStart)/1000.0000;
-
-
-            long pointStart = System.currentTimeMillis();
-            for(SpenObjectStroke object :nvData.getPenObjectData()){
-                mSpenPageDoc.appendObject(object);
-            }
-            pointStrokeTime = (System.currentTimeMillis()-pointStart)/1000.0000;
-
-            double updateStart = System.currentTimeMillis();
-            mSpenSurfaceView.update();
-            //mSpenSurfaceView.updateScreen();
-
-            update = (System.currentTimeMillis()-updateStart)/1000.0000;
-
-        }catch(Exception e){
-            Log.e("error",e.getMessage());
-            e.printStackTrace();
-            for(int i = 0 ; i < e.getStackTrace().length ; i++){
-                Log.e("error",e.getStackTrace()[i].toString());
-
-            }
-        }
-
-        long end = System.currentTimeMillis();
-        String toast = "byte 길이 = 약 "+packetLength+"KB" +
-                "\n전송시간 : "+ String.format("%.4f",transfer /1000.0000)+"(초)" +
-                "\n펜 그리는 시간 : "+String.format("%.4f",pointStrokeTime) +"(초)" +
-                "\n텍스트박스 시간 : "+String.format("%.4f",pointTextTime)+"(초)" +
-                "\n레이블 시간 : "+String.format("%.4f",pointLabelTime)+"(초)" +
-                "\n이미지 시간 : "+String.format("%.4f",pointImageTime)+"(초)" +
-                "\n화면에 추가 시간 : "+String.format("%.4f",update) + "(초)" +
-                "\n전체 소요 시간 : "+String.format("%.4f",(end-start)/1000.0000) + "(초)" ;
-
-        Toast.makeText(mContext,toast,Toast.LENGTH_LONG).show();
-        Log.e("TimeDebug",toast);
-        //progressBar.setVisibility(View.GONE);
+        mSpenPageDoc.clearHistory();
+        hideLoader();
 
     }
 
+    private SpenFlickListener onFlickListener = new SpenFlickListener() {
+        @Override
+        public boolean onFlick(int i) {
+            if(i==0){
+                //이전 페이지
+                if(getPageNo()>1){
+                    setPageNo(getPageNo()-1);
+                    refreshChart();
+                }
+            }
+            if(i==1){
+                if(getPageNo()<getPageLastNo()){
+                    setPageNo(getPageNo()+1);
+                    refreshChart();
+                }
+            }
+            return false;
+        }
+    };
     private SpenTouchListener onPreTouchSurfaceViewListener = new SpenTouchListener() {
 
         @Override
@@ -786,14 +1453,19 @@ public class NvChart extends Fragment {
             Log.e("HZ", "HZ onPreTouchSurfaceViewListener: " + event.getAction());
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    penOption.setVisibility(View.GONE);
+                    textOption.setVisibility(View.GONE);
                 case MotionEvent.ACTION_POINTER_DOWN:
-                    enableButton(false);
+
                     break;
                 case MotionEvent.ACTION_CANCEL:
                 case MotionEvent.ACTION_UP:
-                    enableButton(true);
                     break;
             }
+            if(event.getDevice().getName().contains("sec_touchscreen")){
+                Log.d("touchListener","getY"+event.getRawY());
+            }
+            gestuerDetector.onTouchEvent(event);
             return false;
         }
     };
@@ -803,12 +1475,13 @@ public class NvChart extends Fragment {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
             Log.e("event","1");
+
             closeSettingView();
             if (event.getAction() == MotionEvent.ACTION_UP && event.getToolType(0) == mToolType) {
                 // Check if the control is created.
                 SpenControlBase control = mSpenSurfaceView.getControl();
-                Log.e("event","2");
                 if (control == null) {
+
                     // When Pen touches the display while it is in Add ObjectImage mode
                     if (mMode == MODE_IMG_OBJ) {
                         // Set a bitmap file to ObjectImage.
@@ -817,17 +1490,69 @@ public class NvChart extends Fragment {
                         // When Pen touches the display while it is in Add ObjectTextBox mode
                     } else if (mSpenSurfaceView.getToolTypeAction(mToolType) == SpenSurfaceView.ACTION_TEXT) {
                         // Set the location to insert ObjectTextBox and add it to PageDoc.
-                        Log.e("event","text");
+                        Log.e("touchEvent","text");
+                        Bitmap bitmap =mSpenPageDoc.getBackgroundImage();
                         SpenObjectTextBox textObj = new SpenObjectTextBox();
                         PointF canvasPos = getCanvasPoint(event);
                         float x = canvasPos.x;
                         float y = canvasPos.y;
+                        float height,width;
+                        int point = bitmap.getPixel((int)x,(int)y);
+
+                        Log.e("touchEvent",x+", "+y+" ; point "+point);
+                        while(x>0){
+                            if(point != bitmap.getPixel((int)x,(int)y)){
+                                //Log.e("touchEvent",x+", "+y+" ; point "+point + bitmap.getPixel((int)x,(int)y));
+                                break;
+                            }
+                            x=x-1;
+
+                        }
+                        float tempX=canvasPos.x;
+                        Log.e("touchEvent","tempX="+tempX);
+
+                        while (tempX<mSpenPageDoc.getWidth()){
+                            Log.e("touchEvent",canvasPos.x+", tempX="+tempX+", "+y+" ; point "+point + bitmap.getPixel((int)tempX,(int)y));
+
+                            if(point != bitmap.getPixel((int)tempX,(int)canvasPos.y)){
+                                break;
+                            }
+                            tempX=tempX+1;
+                        }
+                        width=tempX;
+                        Log.e("touchEvent","x="+x+", tempX="+tempX+", width="+width);
+/*
+                        while(y>0){
+                            if(point != bitmap.getPixel((int)canvasPos.x,(int)y)){
+                                //Log.e("touchEvent",x+", "+y+" ; point "+point + bitmap.getPixel((int)x,(int)y));
+                                break;
+                            }
+                            y=y-1;
+
+                        }
+                        float tempY=canvasPos.y;
+
+                        while(tempY<mSpenPageDoc.getHeight()){
+                            if(point !=bitmap.getPixel((int)canvasPos.x,(int)tempY)){
+                                break;
+                            }
+                            tempY=tempY+1;
+                        }
+                        height=tempY;
+                        Log.e("touchEvent","x="+x+", y="+y+", width="+width+", height="+height);*/
+                        textObj.setMargin(0,0,0,0);
                         float textBoxHeight = getTextBoxDefaultHeight(textObj);
+
                         if ((y + textBoxHeight) > mSpenPageDoc.getHeight()) {
                             y = mSpenPageDoc.getHeight() - textBoxHeight;
                         }
-                        RectF rect = new RectF(x, y, x + 350, y + textBoxHeight);
+                        RectF rect = new RectF(x, y-10, width, y+10);
                         textObj.setRect(rect, true);
+
+                        textObj.setRotatable(false);
+                        textObj.setFontSize(18);
+                        textObj.setTextColor(Prefer.getPrefInt("TextColor",0));
+                        
                         mSpenPageDoc.appendObject(textObj);
                         mSpenPageDoc.selectObject(textObj);
                         mSpenSurfaceView.update();
@@ -885,6 +1610,55 @@ public class NvChart extends Fragment {
 
         return height;
     }
+
+    private final SpenControlListener spenControlListener = new SpenControlListener() {
+        @Override
+        public boolean onClosed(ArrayList<SpenObjectBase> arrayList) {
+            return false;
+        }
+
+        @Override
+        public boolean onCreated(ArrayList<SpenObjectBase> arrayList, ArrayList<Rect> arrayList1, ArrayList<SpenContextMenuItemInfo> menu, ArrayList<Integer> arrayList3, int i, PointF pointF) {
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_PASTE_ID,getResources().getDrawable(R.drawable.sdk_note_voice_btn_ic_deleted) ,"붙여넣기", true));
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_CUT_ID,getResources().getDrawable(R.drawable.sdk_note_voice_btn_ic_deleted) ,"잘라내기", true));
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_COPY_ID,getResources().getDrawable(R.drawable.sdk_voice_button_floatingview_button_circular_selector) ,"복사", true));
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_DELETE_ID,getResources().getDrawable(R.drawable.sdk_note_voice_btn_ic_deleted) ,"삭제", true));
+
+
+            return true;
+        }
+
+        @Override
+        public void onObjectChanged(ArrayList<SpenObjectBase> arrayList) {
+
+        }
+
+        @Override
+        public void onRectChanged(RectF rectF, SpenObjectBase spenObjectBase) {
+
+        }
+
+        @Override
+        public void onRotationChanged(float v, SpenObjectBase spenObjectBase) {
+
+        }
+
+        @Override
+        public boolean onMenuSelected(ArrayList<SpenObjectBase> objectList, int itemId) {
+            switch (itemId) {
+                // Remove the selected object.
+                case CONTEXT_MENU_DELETE_ID:
+                    // mSpenPageDoc.removeSelectedObject();
+                    for (SpenObjectBase obj : objectList) {
+                        mSpenPageDoc.removeObject(obj);
+                    }
+                    mSpenSurfaceView.closeControl();
+                    mSpenSurfaceView.update();
+                    break;
+            }
+            return false;
+        }
+    };
     private final View.OnClickListener mTextObjBtnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -992,10 +1766,10 @@ public class NvChart extends Fragment {
 
     private void release(){
 
-        if(mSpenSurfaceView != null) {
+        /*if(mSpenSurfaceView != null) {
             mSpenSurfaceView.close();
             mSpenSurfaceView = null;
-        }
+        }*/
         if(mSpenNoteDoc != null) {
             try {
                 mSpenNoteDoc.close();
@@ -1004,6 +1778,7 @@ public class NvChart extends Fragment {
             }
             mSpenNoteDoc = null;
         }
+
     }
 
     public String getName(){
@@ -1055,21 +1830,38 @@ public class NvChart extends Fragment {
 
     private void closeSettingView() {
         // Close all the setting views.
-        mPenSettingView.setVisibility(SpenSurfaceView.GONE);
-        mTextSettingView.setVisibility(SpenSurfaceView.GONE);
-        mSelectionSettingView.setVisibility(SpenSurfaceView.GONE);
+        close_penOption(null);
+
     }
 
     private class UIHandler extends Handler{
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.arg1) {
+           /* switch (msg.arg1) {
                 case 1:
                     if(state.equals("DeActive")) //Fragment가 숨겨진 상태일 때
                         break;
                     //Fragment의 UI를 변경하는 작업을 수행합니다.
                     NvData nvData = (NvData)msg.obj;
                     initSpen(nvData);
+            }
+            */
+            switch (msg.what){
+                case MsgType.REFRESH_NVCHART :
+                    setJData(msg.obj.toString());
+                    break;
+
+                case MsgType.NVCHART_RELEASE :
+
+                    ImageView background = (ImageView)getView().findViewById(R.id.backgroundImage);
+                    if((boolean)msg.obj){
+                        background.setVisibility(View.VISIBLE);release();
+                    }else{
+                        //initView();
+                        background.setVisibility(View.GONE);
+                    }
+
+                    break;
             }
         }
 
@@ -1096,6 +1888,7 @@ public class NvChart extends Fragment {
     public void onStop(){
         super.onStop();
         state = "DeActive";
+        closeSettingView();
     }
 
     public void onResume(){

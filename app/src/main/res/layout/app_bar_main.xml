@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <android.support.design.widget.AppBarLayout
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:theme="@style/AppTheme.AppBarOverlay">
 
-        <android.support.v7.widget.Toolbar
+        <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:popupTheme="@style/AppTheme.PopupOverlay" />
 
-    </android.support.design.widget.AppBarLayout>
+    </com.google.android.material.appbar.AppBarLayout>
 
     <include layout="@layout/content_main" />
 
-    <android.support.design.widget.FloatingActionButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
         android:visibility="invisible"
-        app:layout_anchor="@id/bottom_sheet"
+        app:layout_anchor="@id/viewpager"
         app:layout_anchorGravity="right"
         app:srcCompat="@android:drawable/ic_dialog_email" />
 
@@ -57,41 +57,51 @@
                 android:paddingLeft="20dp"
                 android:paddingTop="8dp"
                 android:paddingRight="20dp"
-                android:paddingBottom="8dp">
+                android:paddingBottom="8dp"
+                android:id="@+id/pageControl">
 
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_first" />
+                    android:src="@drawable/button_first"
+                    android:id="@+id/first"
+                    android:tag="first"/>
 
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_prev" />
+                    android:src="@drawable/button_prev"
+                    android:id="@+id/prev"
+                    android:tag="prev" />
 
                 <TextView
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:text="1/1" />
+                    android:text="1/1"
+                    android:id="@+id/pageIndicator"/>
 
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_next" />
+                    android:src="@drawable/button_next"
+                    android:id="@+id/next"
+                    android:tag="next" />
 
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_last" />
+                    android:src="@drawable/button_last"
+                    android:id="@+id/last"
+                    android:tag="last" />
 
             </LinearLayout>
 
@@ -103,27 +113,32 @@
                 android:paddingLeft="10dp"
                 android:paddingTop="8dp"
                 android:paddingRight="10dp"
-                android:paddingBottom="8dp">
+                android:paddingBottom="8dp"
+                android:id="@+id/layoutUndoRedo"
+                android:clickable="false">
 
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_undo" />
+                    android:src="@drawable/button_undo"
+                    android:tag="undo"/>
 
                 <ImageButton
                     android:layout_width="50dp"
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_redo" />
+                    android:src="@drawable/button_redo"
+                    android:tag="redo"/>
             </LinearLayout>
 
             <View
                 android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:id="@+id/bottomToolBarSlideBtn"/>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -141,7 +156,9 @@
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_new" />
+                    android:src="@drawable/button_new"
+                    android:id="@+id/btnNew"
+                    android:tag="new" />
             </LinearLayout>
 
             <LinearLayout
@@ -160,30 +177,46 @@
                     android:layout_height="match_parent"
                     android:background="@android:color/transparent"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/button_save" />
+                    android:src="@drawable/button_save"
+                    android:id="@+id/btnSave"
+                    android:tag="save" />
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
+        <RelativeLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:id="@+id/layoutTab"
             android:layout_below="@id/bottom_tool_bar"
             android:background="@color/colorPrimary">
-            <android.support.design.widget.TabLayout
+            <com.google.android.material.tabs.TabLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:tabGravity="center"
+                android:id="@+id/tab" />
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/tab" />
+                android:text="2019-04-25"
+                android:textSize="20sp"
+                android:padding="18dp"
+                android:id="@+id/date"
+                android:onClick="onClick_datePicker"/>
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="새로고침"
                 android:id="@+id/btnRefresh"
+                android:layout_alignParentRight="true"
                 android:onClick="onClick_btnRefresh"/>
 
-        </LinearLayout>
+        </RelativeLayout>
 
-        <android.support.v4.view.ViewPager
+        <androidx.viewpager.widget.ViewPager
             android:id="@+id/viewpager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -191,6 +224,15 @@
             android:layout_below="@id/layoutTab"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
+        <DatePicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/datePicker"
+            android:visibility="gone"
+            android:background="@color/colorPrimarySoft"
+            >
+
+        </DatePicker>
         <FrameLayout
             android:id="@+id/orderFrame"
             android:layout_width="match_parent"
@@ -201,4 +243,4 @@
 
         </FrameLayout>
     </RelativeLayout>
-</android.support.design.widget.CoordinatorLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

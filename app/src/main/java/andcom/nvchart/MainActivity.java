@@ -1,79 +1,83 @@
 package andcom.nvchart;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.AnimationDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.BottomSheetBehavior;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.design.widget.TabLayout;
-import android.support.design.widget.TextInputEditText;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.ViewPager;
-import android.support.v4.widget.NestedScrollView;
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.support.design.widget.NavigationView;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+
+
+
+
+
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.TableLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.evrencoskun.tableview.TableView;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.textfield.TextInputEditText;
 
 import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Locale;
 
 import andcom.nvchart.TableView.MainFrameTable;
 import andcom.nvchart.TableView.Order.OrderTable;
 import andcom.nvchart.TableView.Wait.WaitTable;
-import andcom.nvchart.TableView.holder.OrderTableAdapter;
-import andcom.nvchart.TableView.model.CellModel;
-import andcom.nvchart.TableView.model.ColumnHeaderModel;
-import andcom.nvchart.TableView.model.RowHeaderModel;
 import andcom.nvchart.nvChart.NvChart;
+import andcom.nvchart.util.LoadingProgress;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.cardview.widget.CardView;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager.widget.ViewPager;
+import es.dmoral.toasty.Toasty;
+import kotlin.Function;
+import kotlin.jvm.functions.Function1;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener,ToolButtonListener {
     int READ_STORAGE_PERMISSION = 11;
 
     static long transfer;
@@ -86,15 +90,14 @@ public class MainActivity extends AppCompatActivity
 
     FrameLayout waitFrame, frmMain;
     Button btnSearch;
-    Fragment fragment;
+    Fragment fragment, mainFragment;
+    FragmentManager fm;
+    FragmentTransaction ft;
     NavigationView navigationView;
     DrawerLayout drawer;
     RelativeLayout bottom_sheet;
     BottomSheetBehavior bottomSheetBehavior;
 
-    //private GestureDetector gesturedetector = null;
-    FragmentManager fm2;
-    FragmentTransaction ft2;
     Fragment bottomFragment;
     TabLayout tabLayout;
     ViewPager viewPager;
@@ -105,10 +108,14 @@ public class MainActivity extends AppCompatActivity
 
     TextInputEditText editName,editChartNo;
 
+    TextView pageIndicator,dateView;
+    static DatePickerDialog datePickerDialog;
+
     public static RecyclerView recyclerViewNvList;
     public static NvListRecyclerAdapter nvListRecyclerAdapter;
     private static JSONObject jNvData;
-    public static void setjNvData(@Nullable String db, @Nullable String chartno,@Nullable String nodekey,@Nullable String page){
+
+    public static void setjNvData(@Nullable String db, @Nullable String chartno, @Nullable String nodekey, @Nullable String page){
         if(jNvData==null){
             jNvData = MakeJSONData.get(MsgType.LOAD_NVCHART,db,chartno,nodekey,page);
         }else{
@@ -128,6 +135,8 @@ public class MainActivity extends AppCompatActivity
 
         return jNvData;
     }
+
+
     @SuppressLint({"ClickableViewAccessibility", "HandlerLeak"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,10 +146,11 @@ public class MainActivity extends AppCompatActivity
         context = this;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        LinearLayout bottomToolbar = (LinearLayout) findViewById(R.id.bottom_tool_bar);
+        final View bottomToolbar = (View) findViewById(R.id.bottomToolBarSlideBtn);
         bottomToolbar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 int state = bottomSheetBehavior.getState();
                 if (state == BottomSheetBehavior.STATE_HIDDEN || state == BottomSheetBehavior.STATE_COLLAPSED)
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -148,6 +158,7 @@ public class MainActivity extends AppCompatActivity
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             }
         });
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -162,6 +173,7 @@ public class MainActivity extends AppCompatActivity
 
             }
         });
+
 
         //gesturedetector = new GestureDetector(new MyGestureListener());
 
@@ -204,8 +216,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
-
-
+                loadDBList();
             }
 
             @Override
@@ -269,7 +280,9 @@ public class MainActivity extends AppCompatActivity
                     case MsgType.LOAD_NVCHART :
                         load_NvChart(msg.obj.toString());
                         break;
-
+                    case MsgType.UPDATE_PAGE_NO :
+                        pageIndicator.setText(msg.obj.toString());
+                        break;
                 }
             }
         };
@@ -307,14 +320,75 @@ public class MainActivity extends AppCompatActivity
         editChartNo = (TextInputEditText)navigationView.getHeaderView(0).findViewById(R.id.editChartNo);
 
 
-        fragment = new MainFrameTable();
-        FragmentManager fm = getSupportFragmentManager();
-        FragmentTransaction ft = fm.beginTransaction();
-        ft.add(R.id.frmMain, fragment);
+
+        pageIndicator = (TextView)findViewById(R.id.pageIndicator);
+        dateView = findViewById(R.id.date);
+        long now = System.currentTimeMillis();
+        Date date = new Date(now);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (E)");
+        dateView.setText(sdf.format(date));
+
+
+        mainFragment = new MainFrameTable();
+        fragment = new NvChart();
+        fm = getSupportFragmentManager();
+        ft = fm.beginTransaction();
+        ft.replace(R.id.frmMain, fragment);
 
         ft.commit();
 
+        /*FragmentManager fm2 = getSupportFragmentManager();
+        FragmentTransaction ft2 = fm2.beginTransaction();
+        ft2.replace(R.id.frmMain,mainFragment);
 
+        ft2.commit();*/
+
+        LinearLayout tool = (LinearLayout)findViewById(R.id.toollayout);
+        for(int i=0;i<tool.getChildCount();i++){
+            tool.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onClicked(v);
+                }
+            });
+        }
+
+        LinearLayout pageControl = (LinearLayout)findViewById(R.id.pageControl);
+        for(int i = 0 ; i<pageControl.getChildCount();i++){
+            if(pageControl.getChildAt(i) instanceof ImageButton){
+                pageControl.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        onClicked(v);
+                    }
+                });
+            }
+        }
+
+        LinearLayout UndoRedo = (LinearLayout)findViewById(R.id.layoutUndoRedo);
+        for(int i=0;i<UndoRedo.getChildCount();i++){
+            UndoRedo.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onClicked(v);
+                }
+            });
+        }
+
+        ImageButton btnNew = (ImageButton)findViewById(R.id.btnNew);
+        btnNew.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onClicked(v);
+            }
+        });
+        ImageButton btnSave = (ImageButton)findViewById(R.id.btnSave);
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onClicked(v);
+            }
+        });
 
 
         tabLayout = (TabLayout) findViewById(R.id.tab);
@@ -344,21 +418,38 @@ public class MainActivity extends AppCompatActivity
 
             }
         });
+        orderTable = (OrderTable) pagerAdapter.getItem(1);
+        waitTable = (WaitTable) pagerAdapter.getItem(0);
 
+        datePickerDialog = new DatePickerDialog(this);
     }
 
-    private void loadDBList(){
-        JSONObject msg = MakeJSONData.get(MsgType.LOAD_DBLIST);
-        JSONObject rcvData = SendData.getMessage(this,msg.toString());
-        try{
-            rcvData = new JSONObject("{\"User\":\"andcom3\",\"DB\":\"123\"}");
-        }catch(Exception e){
-            e.printStackTrace();
+    public void onClicked(View v){
+        if(fragment instanceof NvChart){
+            ((NvChart) fragment).onClicked(v);
+        }else{
+            Log.e("MainActivity","OnClicked" + v.getTag().toString() );
+
         }
+    }
+    private void loadDBList(){
+        ImageView loading_nvlist = (ImageView)findViewById(R.id.loading_nvlist);
+        AnimationDrawable drawable = (AnimationDrawable)loading_nvlist.getBackground();
+        drawable.start();
+        loading_nvlist.setVisibility(View.VISIBLE);
+        JSONObject msg = MakeJSONData.get(MsgType.LOAD_DBLIST);
+        JSONObject rcvData=SendData.getMessage(this,msg.toString());
+        try{
+            Toasty.error(this,rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
+            return;
+        }catch (JSONException je){
+
+        }
+
         LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
-        Button db1 = (Button)findViewById(R.id.btnDB1);
-        Button db2 = (Button)findViewById(R.id.btnDB2);
-        Button db3 = (Button)findViewById(R.id.btnDB3);
+        ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
+        ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
+        ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
 
         db1.setOnClickListener(new dbBtnOnClickListener());
         db2.setOnClickListener(new dbBtnOnClickListener());
@@ -376,17 +467,37 @@ public class MainActivity extends AppCompatActivity
                 }else{
 
                 }
-                dbBtnSelection(db1);
 
 
             }else{  //1개
-                dbBtnSelection(db1);
 
             }
+            String sDB = Prefer.getPrefString("DB","1");
+            switch (sDB){
+                case "1" :
+                    dbBtnSelection(db1);
+                    break;
+                case "2" :
+                    dbBtnSelection(db2);
+                    break;
+                case "3" :
+                    dbBtnSelection(db3);
+                    break;
+            }
 
-        }catch(JSONException je){
-            je.printStackTrace();
+        }catch(JSONException jje){
+            jje.printStackTrace();
+        }finally {
+
+            loading_nvlist.setVisibility(View.GONE);
         }
+        /*try{
+            rcvData = new JSONObject("{\"User\":\"andcom3\",\"DB\":\"123\"}");
+        }catch(Exception e){
+            e.printStackTrace();
+
+        }*/
+
     }
     public class dbBtnOnClickListener implements View.OnClickListener {
 
@@ -397,26 +508,34 @@ public class MainActivity extends AppCompatActivity
     }
     private void dbBtnSelection(View v){
         LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
-        Button db1 = (Button)findViewById(R.id.btnDB1);
-        Button db2 = (Button)findViewById(R.id.btnDB2);
-        Button db3 = (Button)findViewById(R.id.btnDB3);
+        ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
+        ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
+        ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
+
+
 
         db1.setSelected(false);
         db2.setSelected(false);
         db3.setSelected(false);
 
-        View thisBtn = (Button)v;
+        View thisBtn = (ImageButton)v;
         thisBtn.setSelected(true);
         Prefer.setPref("DB",thisBtn.getTag().toString());
         setjNvData(thisBtn.getTag().toString(),null,null,null);
 
 
-        JSONObject msg = MakeJSONData.get(MsgType.LOAD_NVLIST,thisBtn.getTag().toString(),"");
+        JSONObject msg = MakeJSONData.get(MsgType.LOAD_NVLIST,thisBtn.getTag().toString(),selectChart);
 
         JSONObject rcvData = SendData.getMessage(context,msg.toString());
         //리스트 만들기
+        try{
+            Toasty.error(this,rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
+            return;
+        }catch (JSONException je2){
 
-        nvListRecyclerAdapter = new NvListRecyclerAdapter(rcvData.toString());
+        }
+
+        nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance(rcvData.toString());
         recyclerViewNvList = (RecyclerView)findViewById(R.id.recyclerNvList);
 
         recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
@@ -426,8 +545,16 @@ public class MainActivity extends AppCompatActivity
         recyclerViewNvList.addOnItemTouchListener(new RecyclerTouchListener(this, recyclerViewNvList, new RecyclerTouchListener.ClickListener() {
             @Override
             public void onClick(View view, int position) {
+                if(position<0)
+                    return;
                 Prefer.setPref("NVLIST",position);
+
                 //setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(position),nvListRecyclerAdapter.getPageCnt(position));
+                /*for(int i=0;i<recyclerViewNvList.getChildCount();i++)
+                    recyclerViewNvList.findViewHolderForAdapterPosition(i).itemView.setSelected(false);
+                view.setSelected(true);*/
+                nvListRecyclerAdapter.setSeletedPosition(position);
+
                 load_NvChart(selectChart);
             }
 
@@ -439,34 +566,94 @@ public class MainActivity extends AppCompatActivity
         setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(0),nvListRecyclerAdapter.getPageCnt(0));
 
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+    }
+
     public interface Refresh {
-        void refreshData();
+        void refreshData(String date);
     }
 
     public void onClick_btnRefresh(View v) {
-        OrderTable orderTable = (OrderTable) pagerAdapter.getItem(1);
-        orderTable.refreshData();
+        refreshData();
+    }
 
-        WaitTable waitTable = (WaitTable) pagerAdapter.getItem(0);
-        waitTable.refreshData();
+    public void refreshData(){
+
+        orderTable.refreshData(getSelectedDate());
+        waitTable.refreshData(getSelectedDate());
+    }
+    public void onClick_datePicker(View v) {
+        datePickerDialog.setOnDateSetListener(new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                Log.e("datePicker","date = " + year+month+dayOfMonth);
+                Calendar selectCal = Calendar.getInstance();
+                selectCal.set(year,month,dayOfMonth);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (E)");
+                String date = sdf.format(selectCal.getTime());
+                dateView.setText(date);
+                refreshData();
+
+
+            }
+        });
+        datePickerDialog.show();
+    }
+
+    public static String getSelectedDate(){
+        int year = datePickerDialog.getDatePicker().getYear();
+        int month = datePickerDialog.getDatePicker().getMonth();
+        int dayOfMonth = datePickerDialog.getDatePicker().getDayOfMonth();
+
+        Calendar selectCal = Calendar.getInstance();
+        selectCal.set(year,month,dayOfMonth);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String date = sdf.format(selectCal.getTime());
+
+        Log.e("datePicker","new date = " + date);
+
+        return date;
     }
 
     public void onClick_btnSearch(View v){
         JSONObject rcvData = new JSONObject();
-        if(!editName.getText().toString().equals("") && editChartNo.getText().toString().equals("")){
+
+        String name = editName.getText().toString().trim();
+        String chart = editChartNo.getText().toString().trim();
+
+        if(!name.equals("") && chart.equals("")){
             //이름만 넣고 검색
-            JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_NAME,editName.getText().toString());
+            JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_NAME,name);
             rcvData =  SendData.getMessage(this,msg.toString());
+            try{
+                Toasty.error(this,rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
+                return;
+            }catch (JSONException je2){
 
+            }
+            Log.e("btnSearch","이름 검색 클릭");
 
-        }else if(!editChartNo.equals("")){
+        }else if(!editChartNo.getText().toString().equals("")){
             //차트번호 검색
-            JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_CHARTNO,editChartNo.getText().toString());
+            JSONObject msg = MakeJSONData.get(MsgType.SEARCH_BY_CHARTNO,chart);
             rcvData =  SendData.getMessage(this,msg.toString());
+            try{
+                Toasty.error(this,rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
+                return;
+            }catch (JSONException je2){
+
+            }
+            Log.e("btnSearch","차트 번호 검색 클릭");
 
             //차트번호로 검색
         }else{
             //둘다 공백인채로 눌렀을 때
+
+            Log.e("btnSearch","둘다 공백 클릭");
             return;
         }
 
@@ -500,13 +687,39 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
+    private void sendMessage(int msgWhat,Object msg){
+        Message message = NvChart.handler.obtainMessage();
+        message.what=msgWhat;
+        message.obj=msg;
+        NvChart.handler.sendMessage(message);
+    }
+
     public void load_NvChart(final String chartNo){
-        int nPageCnt = Integer.parseInt(nvListRecyclerAdapter.getPageCnt(Prefer.getPrefInt("NVLIST",0)));
+        if(nvListRecyclerAdapter == null){
+            loadDBList();
+        }
+
+        if(chartNo!=null){
+            selectChart=chartNo;
+            JSONObject rcvData = SendData.getMessage(this,MakeJSONData.get(MsgType.LOAD_NVLIST,Prefer.getPrefString("DB","1"),chartNo).toString());
+            try{
+                Toasty.error(this,rcvData.getString("Code"),Toasty.LENGTH_LONG).show();
+                return;
+            }catch (JSONException je2){
+
+            }
+            nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance(rcvData.toString());
+            recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
+            nvListRecyclerAdapter.notifyDataSetChanged();
+        }
+
+        int nPageCnt = nvListRecyclerAdapter.getPageCnt(nvListRecyclerAdapter.getNodeKey(Prefer.getPrefInt("NVLIST",0)));
+        Log.e("pagecnt",Prefer.getPrefInt("NVLIST",0)+" "+nvListRecyclerAdapter.getNodeKey(Prefer.getPrefInt("NVLIST",0))+nPageCnt);
         if(nPageCnt == 0)
             nPageCnt = 1;
-
         setjNvData(null,chartNo,nvListRecyclerAdapter.getNodeKey(Prefer.getPrefInt("NVLIST",0)),String.valueOf(nPageCnt));
-
+        nvListRecyclerAdapter.setSeletedPosition(Prefer.getPrefInt("NVLIST",0));
 
         drawer.closeDrawer(GravityCompat.START, true);
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
@@ -517,41 +730,46 @@ public class MainActivity extends AppCompatActivity
         Thread worker = new Thread(new Runnable() {
             @Override
             public void run() {
-                fragment = new NvChart();
-                Bundle bundle = new Bundle();
-                bundle.putString("DATA",getjNvData().toString());
-                fragment.setArguments(bundle);
-                FragmentManager fm = getSupportFragmentManager();
-                FragmentTransaction ft = fm.beginTransaction();
+                //fragment = new NvChart();
+                //Bundle bundle = new Bundle();
+                //bundle.putString("DATA",getjNvData().toString());
+                //fragment.setArguments(bundle);
+                //FragmentManager fm = getSupportFragmentManager();
+                //FragmentTransaction ft = fm.beginTransaction();
 
-                ft.replace(R.id.frmMain, fragment);
-                ft.commit();
+                //ft.replace(R.id.frmMain, fragment);
+                //ft.commit();
+
+                sendMessage(MsgType.REFRESH_NVCHART,getjNvData().toString());
+                ft.replace(R.id.frmMain,fragment);
             }
         });
         worker.start();
-        if(chartNo!=null){
-            selectChart=chartNo;
-            JSONObject rcvData = SendData.getMessage(this,MakeJSONData.get(MsgType.LOAD_NVLIST,Prefer.getPrefString("DB","1"),chartNo).toString());
-            nvListRecyclerAdapter = new NvListRecyclerAdapter(rcvData.toString());
-            recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
-            nvListRecyclerAdapter.notifyDataSetChanged();
-        }
+
+
+
     }
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
+        if(bottomSheetBehavior.getState()==BottomSheetBehavior.STATE_EXPANDED){
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }else if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         }else if(fragment instanceof NvChart){
-            selectChart = null;
+            /*selectChart = null;
+            loadDBList();
             fragment = new MainFrameTable();
             FragmentManager fm = getSupportFragmentManager();
             FragmentTransaction ft = fm.beginTransaction();
             ft.replace(R.id.frmMain,fragment);
-            ft.commit();
-        }
-        else {
-            super.onBackPressed();
+            ft.commit();*/
+
+            sendMessage(MsgType.NVCHART_RELEASE,true);
+            if(findViewById(R.id.backgroundImage).getVisibility()==View.VISIBLE){
+                super.onBackPressed();
+
+            }
         }
     }
     private int VersionStringToInteger(String version){

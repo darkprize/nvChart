@@ -5,36 +5,11 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:weightSum="2">
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:id="@+id/orderFrame">
-        <fragment
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:name="andcom.nvchart.TableView.Order.OrderTable"
-            />
-    </FrameLayout>
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="10dp"
-        />
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:id="@+id/waitFrame">
-        <fragment
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:name="andcom.nvchart.TableView.Wait.WaitTable"
-            />
-    </FrameLayout>
+
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:src="@drawable/patient_chart"
-        android:scaleType="fitCenter"
+        android:scaleType="fitXY"
         />
 </LinearLayout>

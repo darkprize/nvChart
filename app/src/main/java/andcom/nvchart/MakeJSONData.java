@@ -85,6 +85,15 @@ public class MakeJSONData {
                     jsonObject.put("구분코드","8");
                     jsonObject.put("CSDATE",params[0].toString());
                     break;
+                case MsgType.SAVE_NVCHART:
+                    jsonObject.put("구분코드","4");
+                    jsonObject.put("DB",params[0]);
+                    jsonObject.put("ND_CHARTNO",params[1]);
+                    jsonObject.put("ND_NODEKEY",params[2]);
+                    int npageNo = Integer.parseInt(params[3]);
+                    String pageNo = String.format("%03d",npageNo);
+                    jsonObject.put("ND_PAGENO",pageNo);
+                    break;
                 default:
                     break;
             }

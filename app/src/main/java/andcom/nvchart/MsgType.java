@@ -20,6 +20,10 @@ public class MsgType {
             , LOAD_NVLIST = 11
             , LOAD_NVCHART = 12
             , LOAD_WAIT = 13
-            , LOAD_ORDER = 14;
+            , LOAD_ORDER = 14
+            ,SAVE_NVCHART = 15
+            ,UPDATE_PAGE_NO=16
+            ,REFRESH_NVCHART = 17
+            ,NVCHART_RELEASE=18;
 
 }

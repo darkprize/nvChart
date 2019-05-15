@@ -1,7 +1,5 @@
 package andcom.nvchart.TableView.Order;
 
-import android.support.v7.widget.CardView;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +11,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import andcom.nvchart.R;
+import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.RecyclerView;
 
 /**
  * Created by csy on 2018-03-23.

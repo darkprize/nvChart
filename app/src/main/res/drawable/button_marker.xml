@@ -2,5 +2,6 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_hovered="true" android:drawable="@drawable/button_marker_pressed"/>
     <item android:state_pressed="true" android:drawable="@drawable/button_marker_pressed"/>
+    <item android:state_selected="true" android:drawable="@drawable/button_marker_pressed"/>
     <item android:state_hovered="false" android:drawable="@drawable/button_marker_normal"/>
 </selector>

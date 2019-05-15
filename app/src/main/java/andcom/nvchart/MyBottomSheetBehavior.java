@@ -1,12 +1,14 @@
 package andcom.nvchart;
 
 import android.content.Context;
-import android.support.design.widget.BottomSheetBehavior;
-import android.support.design.widget.CoordinatorLayout;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 public class MyBottomSheetBehavior<V extends View> extends BottomSheetBehavior<V> {
 

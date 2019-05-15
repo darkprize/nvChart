@@ -23,6 +23,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import andcom.nvchart.util.LoadingProgress;
+
 /**
  * Created by csy on 2017-12-26.
  */
@@ -52,6 +54,7 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
 
     Activity activity;
     Context context;
+    LoadingProgress loadingProgress;
 
     private byte[] data;
 
@@ -72,6 +75,8 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
         super.onPreExecute();
         Log.i(logcat,"onPreExecute");
 
+        loadingProgress = LoadingProgress.getInstance();
+        loadingProgress.progressON(activity,"불러오는 중");
     }
 
     @Override
@@ -89,6 +94,7 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
             }
             socket.connect(new InetSocketAddress(ip,port),5000);
             socket.setTcpNoDelay(true);
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(socket.getInputStream());
 
 
             byte[] byteArray = bytes[0];
@@ -103,35 +109,28 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
                 Log.w("SendByte","len : " + len1 + " , string: "+new String(b));
                 dos.write(b,0,len1);
                 totalLen += len1;
-
-
             }
 
             Log.e("totalLen","totalLen : " + totalLen );
             dos.flush();
             inn.close();
 
-
-
-            BufferedInputStream bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-
             String msg = new String();
 
             int len;
 
-            byte[] buffer = new byte[0];
+            byte[] buffer = new byte[1024];
             while((len = bufferedInputStream.read(buffer)) != -1){
+                Log.e("socket","recieve "+len);
 
                 String packet = new String(buffer);
 
                 result += packet;
-
+                Log.e("saveChart socket","result " + result);
                 if(indexOf(buffer,"---AndcomData_END---".getBytes(),0)>=0){
                     Log.e("break1","socket end");
                     break;
                 }
-
-
 
             }
 
@@ -202,6 +201,7 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
         /*loadingProgress.progressOFF();*/
+        loadingProgress.progressOFF();
 
     }
 

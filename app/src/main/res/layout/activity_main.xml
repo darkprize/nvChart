@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"
@@ -14,24 +14,22 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <android.support.design.widget.NavigationView
+    <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
-        android:background="#00ffffff"
         app:headerLayout="@layout/nav_header_main">
-        <android.support.v7.widget.CardView
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="600dp"
-            android:background="#00ffffff"
             android:id="@+id/cardViewNvList">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#00ffffff"
+                android:layout_marginTop="20dp"
                 android:orientation="vertical">
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -41,7 +39,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_marginLeft="20dp"
-                        android:layout_marginTop="20dp"
+                        android:gravity="center"
                         android:textSize="20sp"
                         android:text="서식지"/>
                     <LinearLayout
@@ -51,38 +49,45 @@
                         android:paddingLeft="30dp"
                         android:paddingRight="30dp"
                         android:id="@+id/layoutDB"
-                        android:visibility="gone">
-                        <Button
+                        android:visibility="gone"
+                        tools:visibility="visible">
+                        <ImageButton
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="30dp"
+                            android:scaleType="fitCenter"
+                            android:background="@android:color/transparent"
                             android:layout_weight="1"
-                            android:background="@drawable/button_db_backgroud"
+                            android:src="@drawable/button_db_1"
                             android:text="DB1"
                             android:tag="1"
                             android:id="@+id/btnDB1"/>
-                        <Button
+                        <ImageButton
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="30dp"
+                            android:scaleType="fitCenter"
+                            android:background="@android:color/transparent"
                             android:layout_weight="1"
-                            android:background="@drawable/button_db_backgroud"
+                            android:src="@drawable/button_db_2"
                             android:text="DB2"
                             android:tag="2"
                             android:id="@+id/btnDB2"/>
-                        <Button
+                        <ImageButton
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="30dp"
+                            android:scaleType="fitCenter"
+                            android:visibility="gone"
+                            tools:visibility="visible"
+                            android:background="@android:color/transparent"
                             android:layout_weight="1"
-                            android:background="@drawable/button_db_backgroud"
+                            android:src="@drawable/button_db_3"
                             android:text="DB3"
                             android:tag="3"
-                            android:id="@+id/btnDB3"
-                            android:visibility="gone"
-                            />
+                            android:id="@+id/btnDB3"/>
                     </LinearLayout>
                 </LinearLayout>
 
 
-                <android.support.v7.widget.RecyclerView
+                <androidx.recyclerview.widget.RecyclerView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_margin="20dp"
@@ -91,11 +96,17 @@
                     android:background="@drawable/background_nvlist"
                     tools:listitem="@layout/nv_item">
 
-                </android.support.v7.widget.RecyclerView>
+                </androidx.recyclerview.widget.RecyclerView>
             </LinearLayout>
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
+                android:id="@+id/loading_nvlist"
+                android:background="@drawable/loading_animation"
+                />
 
+        </androidx.cardview.widget.CardView>
+    </com.google.android.material.navigation.NavigationView>
 
-        </android.support.v7.widget.CardView>
-    </android.support.design.widget.NavigationView>
-
-</android.support.v4.widget.DrawerLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

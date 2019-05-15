@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -8,47 +8,63 @@
     tools:context=".MainActivity"
     tools:showIn="@layout/app_bar_main"
     android:background="@color/colorPrimarySoft"
-    android:orientation="vertical"
-    >
+    android:orientation="vertical">
 
     <LinearLayout
-        android:id="@+id/linearLayout"
+        android:id="@+id/toollayout"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:padding="8dp">
+        android:padding="8dp"
+        android:tag="top_tool_layout">
 
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_text"
+            android:tag="@string/TOOL_TEXT"
             />
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_pen"
+            android:id="@+id/pen"
+            android:tag="@string/TOOL_PEN"
             />
+
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_image"
+            android:tag="@string/TOOL_IMAGE"
             />
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_marker"
+            android:tag="@string/TOOL_MARKER"
             />
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_stroke"
+            android:tag="@string/TOOL_STROKE"
+            android:visibility="gone"
             />
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_color"
+            android:tag="@string/TOOL_COLOR"
+            android:visibility="gone"
             />
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_select"
+            android:tag="@string/TOOL_SELECT"
             />
         <ImageButton
             style="@style/TopToolButton"
             android:src="@drawable/button_eraser"
+            android:tag="@string/TOOL_ERASER"
             />
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
@@ -64,11 +80,13 @@
         android:layout_height="1dp"
         android:background="@color/colorPrimaryDark"
         />
+
     <FrameLayout
         android:id="@+id/frmMain"
         android:layout_width="match_parent"
         android:layout_height="1092dp"
         android:background="@color/colorPrimarySoft"
+        android:layout_below="@id/toollayout"
         tools:layout_editor_absoluteY="58dp">
         <!--<fragment
             android:layout_width="match_parent"
@@ -81,5 +99,219 @@
             android:name="andcom.nvchart.nvChart.NvChart"
             android:id="@+id/fgmNvChart"/>-->
 
+
     </FrameLayout>
-</LinearLayout>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/pen_option"
+        android:layout_below="@id/toollayout"
+        app:cardBackgroundColor="#CCffffff"
+        android:layout_margin="4dp"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:contentPadding="4dp">
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:id="@+id/pen_sub">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:visibility="visible"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_black"
+                        android:tag="0"
+                        />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_red"
+                        android:tag="12" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_blue"
+                        android:tag="9" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_green"
+                        android:tag="10"
+                        />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_yellow"
+                        android:tag="14" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_purple"
+                        android:tag="7" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_pink"
+                        android:tag="15" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_stroke_1"
+                        android:tag="1" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_stroke_2"
+                        android:tag="2" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_stroke_3"
+                        android:tag="3" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignRight="@+id/pen_sub"
+                android:layout_alignBottom="@+id/pen_sub"
+                android:padding="8dp"
+                android:text="닫기"
+                android:id="@+id/btnClose"
+                android:textColor="@color/selector_text"
+                android:background="#ffffffff"
+                android:clickable="true"/>
+        </RelativeLayout>
+
+
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/text_option"
+        android:layout_below="@id/toollayout"
+        app:cardBackgroundColor="#CCffffff"
+        android:layout_margin="4dp"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:contentPadding="4dp">
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:id="@+id/text_sub">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:visibility="visible"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_black"
+                        android:tag="0"
+                        />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_red"
+                        android:tag="1" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_blue"
+                        android:tag="2" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_green"
+                        android:tag="3"
+                        />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_yellow"
+                        android:tag="4" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_purple"
+                        android:tag="5" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_pen_color_pink"
+                        android:tag="6" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="invisible">
+
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_stroke_1"
+                        android:tag="1" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_stroke_2"
+                        android:tag="2" />
+                    <ImageButton
+                        style="@style/TopToolSubButton"
+                        android:layout_margin="4dp"
+                        android:src="@drawable/button_stroke_3"
+                        android:tag="3" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignRight="@+id/text_sub"
+                android:layout_alignBottom="@+id/text_sub"
+                android:padding="8dp"
+                android:text="닫기"
+                android:id="@+id/btnTextClose"
+                android:textColor="@color/selector_text"
+                android:background="#ffffffff"
+                android:clickable="true"/>
+        </RelativeLayout>
+
+
+    </androidx.cardview.widget.CardView>
+</RelativeLayout>

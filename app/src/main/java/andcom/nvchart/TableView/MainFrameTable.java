@@ -1,7 +1,6 @@
 package andcom.nvchart.TableView;
 
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +11,7 @@ import android.widget.ProgressBar;
 import com.evrencoskun.tableview.TableView;
 
 import andcom.nvchart.R;
+import androidx.fragment.app.Fragment;
 
 public class MainFrameTable extends Fragment {
 

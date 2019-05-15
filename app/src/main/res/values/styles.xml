@@ -5,17 +5,19 @@
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorAccent">@color/colorPrimaryDark</item>
     </style>
 
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
-
+    colorPrimaryDark
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+
 
     <style name="TopToolButton">
         <item name="android:layout_width">60dp</item>
@@ -30,10 +32,22 @@
         <item name="android:background">@drawable/button_background</item>
     </style>
 
+    <style name="TopToolSubButton">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:paddingLeft">10dp</item>
+        <item name="android:paddingRight">10dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:layout_marginLeft">1dp</item>
+        <item name="android:layout_marginRight">1dp</item>
+        <item name="android:background">@drawable/button_background</item>
+    </style>
+
     <style name="Outlined" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <item name="android:colorControlNormal">@color/colorPrimaryDark</item>
         <item name="android:colorControlActivated">@color/colorPrimary</item>
-
     </style>
 
     <style name="WaitHeaderStyle">
@@ -43,4 +57,9 @@
         <item name="android:gravity">center</item>
         <item name="android:textSize">18sp</item>
     </style>
+
+    <style name="SplashTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/background_splash</item>
+    </style>
+
 </resources>

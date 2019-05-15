@@ -1,6 +1,7 @@
 package andcom.nvchart.nvChart;
 
 import android.graphics.Color;
+import android.util.Log;
 
 class NvConstant {
     static final int KEYBOARD=0;
@@ -21,7 +22,7 @@ class NvConstant {
     static final int MARKER_YELLOW = 1291840315;
     static final int MARKER_PURPLE = 1286013904;
     static final int MARKER_PINK = 1291811019;
-
+/*
     static final int PEN_BLACK = 0;
     static final int PEN_RED = 16711680;
     static final int PEN_BLUE = 255;
@@ -29,6 +30,14 @@ class NvConstant {
     static final int PEN_YELLOW = 16776960;
     static final int PEN_PURPLE = 9699539;
     static final int PEN_PINK = 16739761;
+    */
+    static final int PEN_BLACK = -16777216;
+    static final int PEN_RED = -65536;
+    static final int PEN_BLUE = -16776961;
+    static final int PEN_GREEN = -16711936;
+    static final int PEN_YELLOW = -256;
+    static final int PEN_PURPLE = -7077677;
+    static final int PEN_PINK = -38476;
 
     static final int TEXT_BLACK = -16777216;
     static final int TEXT_RED = -65536;
@@ -76,7 +85,30 @@ class NvConstant {
             case MARKER_PURPLE :code="7";
                 break;
             case MARKER_PINK :code="15";
+                break;/*
+            case TEXT_BLACK :code="0";
                 break;
+            case TEXT_RED :code="1";
+                break;
+            case TEXT_BLUE :code="2";
+                break;
+            case TEXT_GREEN :code="3";
+                break;
+            case TEXT_YELLOW :code="4";
+                break;
+            case TEXT_PURPLE :code="5";
+                break;
+            case TEXT_PINK :code="6";
+                break;*/
+            default:code="0";
+                break;
+        }
+        return code;
+    }
+    public static String getTextColorCode(int value){
+        String code = new String();
+        switch (value){
+
             case TEXT_BLACK :code="0";
                 break;
             case TEXT_RED :code="1";
@@ -97,7 +129,7 @@ class NvConstant {
         return code;
     }
 
-    public static int getColor(int value,int type){
+    public static int getColor(int type, int value){
         int color=1;
         switch (type){
             case 1 : //pen  //
@@ -161,7 +193,7 @@ class NvConstant {
                         break;
                     case 1 :    //빨강
                         color = NvConstant.TEXT_RED;
-
+                        Log.e("penColor","RED");
                         break;
                     case 2 :   //파랑
                         color = NvConstant.TEXT_BLUE;

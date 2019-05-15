@@ -3,6 +3,7 @@ package andcom.nvchart;
 import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -20,6 +21,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+
+import andcom.nvchart.util.LoadingProgress;
 
 /**
  * Created by csy on 2017-12-26.
@@ -50,6 +53,8 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
 
     Activity activity;
     Context context;
+
+    LoadingProgress loadingProgress;
 
     private byte[] data;
 
@@ -82,13 +87,15 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
         //port = 1235;
         //if(bMulti!=2 && bMulti!=3)
 
-        //loadingProgress = LoadingProgress.getInstance();
-        //loadingProgress.progressON(activity,"불러오는 중");
+        loadingProgress = LoadingProgress.getInstance();
+        loadingProgress.progressON(activity,"불러오는 중");
     }
 
     @Override
     public String doInBackground(String... params) {
         Log.i(logcat,"doInBackground");
+
+
         long start =System.currentTimeMillis();
         socket = new Socket();
         StringBuilder sb = new StringBuilder();
@@ -103,7 +110,7 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
                 Log.e("sendData",uhe.getMessage());
             }
             long waitConStart =System.currentTimeMillis();
-            socket.connect(new InetSocketAddress(ip,port),5000);
+            socket.connect(new InetSocketAddress(ip,port),3000);
             socket.setTcpNoDelay(true);
 
             //printWriter = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(),"EUC-KR"),true);
@@ -225,7 +232,7 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
     protected void onPostExecute(String s) {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
-        /*loadingProgress.progressOFF();*/
+        loadingProgress.progressOFF();
 
     }
 

@@ -42,17 +42,20 @@ public class NvData {
     private SpenPageDoc spenPageDoc;
     private Context context;
     private byte[] data;
-    private byte[] backImageData;
-    private File backImageFile;
-    private Jpeg jpg;
+    static private byte[] backImageData;
+    static private File backImageFile;
+    static private Jpeg jpg;
 
     static float ScaleLeft =1250f ;
     static float ScaleWidth =4029.681f ;
     static float ScaleTop =-671.6675f ;
     static float ScaleHeight =5698.928f ;
-
+/*
     final static float TEXT_BOX_TOP_PADDING = 5.0f;
     final static float TEXT_BOX_LEFT_PADDING = 15.0f;
+    */
+    final static float TEXT_BOX_TOP_PADDING = 0f;
+    final static float TEXT_BOX_LEFT_PADDING = 0f;
 
     public byte[] tempImage;
 
@@ -135,7 +138,9 @@ public class NvData {
             try{
             int start=indexOf(data,BACK_IMAGE_START.getBytes(),0)+BACK_IMAGE_START.getBytes().length;
             int end=indexOf(data,BACK_IMAGE_END.getBytes(),0);
-
+            if(end-start <0){
+                return;
+            }
             backImageData = new byte[end-start];
             System.arraycopy(data,start,backImageData,0,end-start);
             jpg = new Jpeg(backImageData);
@@ -270,7 +275,7 @@ public class NvData {
                     fontNameSpan.setName("/system/fonts/ComingSoon.ttf");
                     //fontNameSpan.setName(file.getAbsolutePath());
                     sizeSpan.setSize(18);
-                    colorSpan.setColor(NvConstant.getColor(color,3));
+                    colorSpan.setColor(NvConstant.getColor(3,color));
 
                     //spans.add(fontNameSpan);
                     spans.add(colorSpan);
@@ -283,6 +288,7 @@ public class NvData {
 
                     textObj.setFontSize(18);
                     textObj.setRect(textPoint,true);
+                    textObj.setMargin(0,0,0,0);
                     //textObj.setTextColor(getColor(jsonObject.getInt("COLOR"),3));
                     //Log.e("FontName",textObj.getFont());
                     textObj.setTextSpan(spans);
@@ -334,7 +340,7 @@ public class NvData {
                             points[index].x=(getHexToDecInt(stroke.substring(i,i+4))-ScaleLeft)*jpg.getWidth()/ScaleWidth;
                         }else if((i/4)%2 == 0){//y좌표
                             points[index].y=(getHexToDecInt(stroke.substring(i,i+4))-ScaleTop)*jpg.getHeight()/ScaleHeight;
-                            pressures[index] = 1;
+                            pressures[index] = 0;
                             timestamps[index] = (int) android.os.SystemClock .uptimeMillis();
                             index++;
                         }
@@ -355,11 +361,11 @@ public class NvData {
                         if(pen == 1){  //InkPen
                             penInfo.size = NvConstant.getPenSize(pen,size);
                             penInfo.name = "com.samsung.android.sdk.pen.pen.preload.InkPen";
-                            penInfo.color = NvConstant.getColor(color,pen);
+                            penInfo.color = NvConstant.getColor(pen,color);
                         }else if(pen==2){      //형광펜
                             penInfo.size = NvConstant.getPenSize(pen,size);
                             penInfo.name = "com.samsung.android.sdk.pen.pen.preload.Marker";
-                            penInfo.color = NvConstant.getColor(color,pen);
+                            penInfo.color = NvConstant.getColor(pen,color);
                         }
 
 

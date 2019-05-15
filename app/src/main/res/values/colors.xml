@@ -4,7 +4,8 @@
     <color name="colorPrimaryDark">#A09789</color>
     <color name="colorPrimarySoft">#EDE9DF</color>
 
-    <color name="colorSecondary">#88CBC4</color>
+    <color name="colorSecondary">#88D1C4</color>
+    <color name="colorSecondary1">#88CBC4</color>
     <color name="colorSecondaryDark">#69BAB2</color>
     <color name="colorSecondarySoft">#D1EAE8</color>
 
@@ -15,12 +16,12 @@
     <color name="shadow_background_color">#28415f</color>
     <color name="unselected_header_background_color">#1f3650</color>
 
-<!--    <color name="selected_background_color">#bbdefb</color>
+<!--
+    <color name="selected_background_color">#bbdefb</color>
     <color name="unselected_background_color">#e3f2fd</color>
     <color name="shadow_background_color">#82b1ff</color>
-    <color name="unselected_header_background_color">#1976d2</color>-->
-
-
+    <color name="unselected_header_background_color">#1976d2</color>
+-->
 
     <color name="bottom_sheet_background_start_color">#CFE6EA</color>
     <color name="bottom_sheet_background_end_color">#e5fbff</color>
@@ -33,4 +34,9 @@
 
     <color name="female_icon_color">#e9515f</color>
     <color name="male_icon_color">#f28944</color>
+
+
+    <color name="state_backgroud">@color/colorSecondarySoft</color>
+    <color name="state_card_backgroud">@color/colorSecondary</color>
+    <color name="state_card_textcolor">#ffffffff</color>
 </resources>

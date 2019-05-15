@@ -17,7 +17,25 @@ public class SendData {
     static JSONObject jsonObject;
     private SendData(){
     }
-    public static JSONObject getMessage(Context context, String msg){
+
+    public class SocketException extends Exception {
+
+        public SocketException(String s) {
+            super(s);
+        }
+
+        public SocketException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public SocketException(Throwable cause) {
+            super(cause);
+        }
+
+    }
+
+
+    public static JSONObject getMessage(Context context, String msg) {
         try{
             Log.w("SendData","SendData msg = "+msg);
             jsonObject = new JSONObject();
@@ -32,8 +50,8 @@ public class SendData {
             int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
 
             ASyncTextSocket socket = new ASyncTextSocket((Activity)context,ip,port);
-            String result = socket.execute(msg).get().toString();
-            if(result.equals("")){
+            String result = socket.execute(msg).get();
+            if(result == null){
                 jsonObject = new JSONObject();
                 jsonObject.put("code","8");
                 jsonObject.put("Msg","서버에 접속할 수 없습니다.");
@@ -43,7 +61,7 @@ public class SendData {
 
             Log.e("sendData","try" + result );
 
-        }catch (ExecutionException ee){
+        }/*catch (ExecutionException ee){
             Log.e("Socket Error","ExecutionException Error");
             ee.getStackTrace();
         }catch (InterruptedException ie){
@@ -52,8 +70,14 @@ public class SendData {
         }catch (JSONException je){
             Log.e("Socket Error","JSONException Error");
             je.getStackTrace();
-        }catch(Exception e){
+        }*/catch(Exception e){
             e.printStackTrace();
+            try{
+                jsonObject.put("Msg","msg;"+e.getLocalizedMessage());
+
+            }catch (JSONException je){
+
+            }
         }
 
         return jsonObject;

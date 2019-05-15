@@ -23,6 +23,14 @@ public class Prefer {
         editor = prefs.edit();
 
         editor.putInt(key,value);
+
+        editor.commit();
+    }
+    public static void setPref(String key, float value){
+        editor = prefs.edit();
+
+        editor.putFloat(key,value);
+
         editor.commit();
     }
 
@@ -37,5 +45,9 @@ public class Prefer {
     public static int getPrefInt(String key, int value){
 
         return prefs.getInt(key,value);
+    }
+    public static float getPrefFloat(String key, float value){
+
+        return prefs.getFloat(key,value);
     }
 }

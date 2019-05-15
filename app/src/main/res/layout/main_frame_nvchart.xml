@@ -8,7 +8,8 @@
     <LinearLayout
         android:id="@+id/tool_menu"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="wrap_content"
+        android:visibility="gone">
         <ImageView
             android:id="@+id/text"
             android:layout_width="0dip"
@@ -71,8 +72,7 @@
     <andcom.nvchart.nvChart.BaseFrameLayout
         android:id="@+id/spenViewContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" >
-
+        android:layout_height="match_parent">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -92,22 +92,21 @@
             <RelativeLayout
                 android:id="@+id/spenViewLayout"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_above="@+id/settingTextLayout" >
+                android:layout_height="match_parent">
             </RelativeLayout>
 
-            <com.samsung.android.sdk.pen.settingui.SpenSettingTextLayout
-                android:id="@+id/settingTextLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_alignParentBottom="true"
-                android:visibility="gone"
-                android:background="@android:color/holo_purple">
-            </com.samsung.android.sdk.pen.settingui.SpenSettingTextLayout>
+            <include layout="@layout/loading"
+                android:id="@+id/loading"
+                android:visibility="gone"/>
 
         </RelativeLayout>
 
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src ="@drawable/patient_chart"
+            android:scaleType="fitXY"
+            android:id="@+id/backgroundImage"/>
     </andcom.nvchart.nvChart.BaseFrameLayout>
 
     <RelativeLayout

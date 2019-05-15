@@ -1,21 +1,18 @@
 package andcom.nvchart;
 
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentStatePagerAdapter;
-import android.support.v4.widget.NestedScrollView;
-import android.view.ViewGroup;
 
 import andcom.nvchart.TableView.Order.OrderTable;
 import andcom.nvchart.TableView.Wait.WaitTable;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentStatePagerAdapter;
 
 public class PagerAdapter extends FragmentStatePagerAdapter {
     int mNumOfTabs;
     WaitTable waitTable;
     OrderTable orderTable;
 
-    public PagerAdapter(FragmentManager fm, int NumOfTabs,WaitTable waitTable, OrderTable orderTable) {
+    public PagerAdapter(FragmentManager fm, int NumOfTabs, WaitTable waitTable, OrderTable orderTable) {
         super(fm);
         this.mNumOfTabs = NumOfTabs;
         this.waitTable = waitTable;
