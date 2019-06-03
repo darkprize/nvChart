@@ -7,12 +7,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.AnimationDrawable;
+import android.inputmethodservice.KeyboardView;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -23,6 +27,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewTreeObserver;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.DatePicker;
@@ -115,6 +120,8 @@ public class MainActivity extends AppCompatActivity
     public static NvListRecyclerAdapter nvListRecyclerAdapter;
     private static JSONObject jNvData;
 
+    Handler handler1 ;
+
     public static void setjNvData(@Nullable String db, @Nullable String chartno, @Nullable String nodekey, @Nullable String page){
         if(jNvData==null){
             jNvData = MakeJSONData.get(MsgType.LOAD_NVCHART,db,chartno,nodekey,page);
@@ -150,12 +157,18 @@ public class MainActivity extends AppCompatActivity
         bottomToolbar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+/*
 
                 int state = bottomSheetBehavior.getState();
                 if (state == BottomSheetBehavior.STATE_HIDDEN || state == BottomSheetBehavior.STATE_COLLAPSED)
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 if (state == BottomSheetBehavior.STATE_EXPANDED)
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+*/
+
+
+
+
             }
         });
 
@@ -287,7 +300,35 @@ public class MainActivity extends AppCompatActivity
             }
         };
 
+        handler1 = new Handler(Looper.getMainLooper()){
+            @Override
+            public void handleMessage(Message msg) {
+                recyclerViewNvList.addOnItemTouchListener(new RecyclerTouchListener(context, recyclerViewNvList, new RecyclerTouchListener.ClickListener() {
+                    @Override
+                    public void onClick(View view, int position) {
+                        if(position<0)
+                            return;
+                        Prefer.setPref("NVLIST",position);
 
+                        //setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(position),nvListRecyclerAdapter.getPageCnt(position));
+                /*for(int i=0;i<recyclerViewNvList.getChildCount();i++)
+                    recyclerViewNvList.findViewHolderForAdapterPosition(i).itemView.setSelected(false);
+                view.setSelected(true);*/
+                        nvListRecyclerAdapter.setSeletedPosition(position);
+
+                        load_NvChart(selectChart);
+                    }
+
+                    @Override
+                    public void onLongClick(View view, int position) {
+
+                    }
+                }));
+
+                recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
+                recyclerViewNvList.setLayoutManager(new LinearLayoutManager(context));
+            }
+        };
 
         initView();
         loadDBList();
@@ -316,8 +357,20 @@ public class MainActivity extends AppCompatActivity
         waitFrame = (FrameLayout) navigationView.getHeaderView(0).findViewById(R.id.waitFrame_Header);
         btnSearch = (Button) navigationView.getHeaderView(0).findViewById(R.id.btnSearch);
 
+        class keyboardActionListener implements TextView.OnEditorActionListener {
+
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if(actionId== EditorInfo.IME_ACTION_SEARCH){
+                    onClick_btnSearch(btnSearch);
+                }
+                return true;
+            }
+        }
         editName = (TextInputEditText)navigationView.getHeaderView(0).findViewById(R.id.editName);
         editChartNo = (TextInputEditText)navigationView.getHeaderView(0).findViewById(R.id.editChartNo);
+        editName.setOnEditorActionListener(new keyboardActionListener());
+        editChartNo.setOnEditorActionListener(new keyboardActionListener());
 
 
 
@@ -422,9 +475,11 @@ public class MainActivity extends AppCompatActivity
         waitTable = (WaitTable) pagerAdapter.getItem(0);
 
         datePickerDialog = new DatePickerDialog(this);
+
     }
 
     public void onClicked(View v){
+
         if(fragment instanceof NvChart){
             ((NvChart) fragment).onClicked(v);
         }else{
@@ -432,65 +487,91 @@ public class MainActivity extends AppCompatActivity
 
         }
     }
+    @SuppressLint("StaticFieldLeak")
     private void loadDBList(){
-        ImageView loading_nvlist = (ImageView)findViewById(R.id.loading_nvlist);
-        AnimationDrawable drawable = (AnimationDrawable)loading_nvlist.getBackground();
-        drawable.start();
-        loading_nvlist.setVisibility(View.VISIBLE);
-        JSONObject msg = MakeJSONData.get(MsgType.LOAD_DBLIST);
-        JSONObject rcvData=SendData.getMessage(this,msg.toString());
-        try{
-            Toasty.error(this,rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
-            return;
-        }catch (JSONException je){
+        final ImageView loading_nvlist = (ImageView)findViewById(R.id.loading_nvlist);
 
-        }
+        new AsyncTask<Void,String,Void>(){
+            @Override
+            protected void onPreExecute() {
+                //LoadingProgress.getInstance().progressON((Activity)context,"불러오는중");
+                super.onPreExecute();
+                AnimationDrawable drawable = (AnimationDrawable)loading_nvlist.getDrawable();
+                drawable.start();
 
-        LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
-        ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
-        ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
-        ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
+                loading_nvlist.setVisibility(View.VISIBLE);
+            }
 
-        db1.setOnClickListener(new dbBtnOnClickListener());
-        db2.setOnClickListener(new dbBtnOnClickListener());
-        db3.setOnClickListener(new dbBtnOnClickListener());
-        try{
-            int db = rcvData.getInt("DB");
-            if(db>100){ //3개
-                ldb.setVisibility(View.VISIBLE);
-                db3.setVisibility(View.VISIBLE);
-                dbBtnSelection(db1);
-            }else if(db>10){    //2개
-                ldb.setVisibility(View.VISIBLE);
-                if(db%10 == 3){
-                    db3.setVisibility(View.VISIBLE);
-                }else{
+            @Override
+            protected Void doInBackground(Void... voids) {
+                //LoadingProgress.getInstance().progressOFF();
+                JSONObject msg = MakeJSONData.get(MsgType.LOAD_DBLIST);
+                JSONObject rcvData=SendData.getMessage(context,msg.toString());
+                /*try{
+                    Toasty.error(context,rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
+                    return null;
+                }catch (JSONException je){
+
+                }*/
+
+                LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
+                ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
+                ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
+                ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
+
+                db1.setOnClickListener(new dbBtnOnClickListener());
+                db2.setOnClickListener(new dbBtnOnClickListener());
+                db3.setOnClickListener(new dbBtnOnClickListener());
+                try{
+                    int db = rcvData.getInt("DB");
+                    if(db>100){ //3개
+                        ldb.setVisibility(View.VISIBLE);
+                        db3.setVisibility(View.VISIBLE);
+                        dbBtnSelection(db1);
+                    }else if(db>10){    //2개
+                        ldb.setVisibility(View.VISIBLE);
+                        if(db%10 == 3){
+                            db3.setVisibility(View.VISIBLE);
+                        }else{
+
+                        }
+
+
+                    }else{  //1개
+
+                    }
+                    String sDB = Prefer.getPrefString("DB","1");
+                    switch (sDB){
+                        case "1" :
+                            dbBtnSelection(db1);
+                            break;
+                        case "2" :
+                            dbBtnSelection(db2);
+                            break;
+                        case "3" :
+                            dbBtnSelection(db3);
+                            break;
+                    }
+
+                }catch(JSONException jje){
+                    jje.printStackTrace();
+                }finally {
 
                 }
+                return null;
+            }
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                super.onPostExecute(aVoid);
 
-
-            }else{  //1개
+                loading_nvlist.setVisibility(View.GONE);
 
             }
-            String sDB = Prefer.getPrefString("DB","1");
-            switch (sDB){
-                case "1" :
-                    dbBtnSelection(db1);
-                    break;
-                case "2" :
-                    dbBtnSelection(db2);
-                    break;
-                case "3" :
-                    dbBtnSelection(db3);
-                    break;
-            }
 
-        }catch(JSONException jje){
-            jje.printStackTrace();
-        }finally {
+        }.execute();
 
-            loading_nvlist.setVisibility(View.GONE);
-        }
+
+
         /*try{
             rcvData = new JSONObject("{\"User\":\"andcom3\",\"DB\":\"123\"}");
         }catch(Exception e){
@@ -507,6 +588,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
     private void dbBtnSelection(View v){
+        Log.e("dbBtnSelec","asd");
         LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
         ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
         ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
@@ -534,35 +616,16 @@ public class MainActivity extends AppCompatActivity
         }catch (JSONException je2){
 
         }
+        Log.e("dbBtnSelec","asd"+rcvData.toString());
 
         nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance(rcvData.toString());
         recyclerViewNvList = (RecyclerView)findViewById(R.id.recyclerNvList);
 
-        recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
-        recyclerViewNvList.setLayoutManager(new LinearLayoutManager(context));
+        Message message = handler1.obtainMessage();
+        handler1.sendMessage(message);
         nvListRecyclerAdapter.notifyDataSetChanged();
 
-        recyclerViewNvList.addOnItemTouchListener(new RecyclerTouchListener(this, recyclerViewNvList, new RecyclerTouchListener.ClickListener() {
-            @Override
-            public void onClick(View view, int position) {
-                if(position<0)
-                    return;
-                Prefer.setPref("NVLIST",position);
 
-                //setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(position),nvListRecyclerAdapter.getPageCnt(position));
-                /*for(int i=0;i<recyclerViewNvList.getChildCount();i++)
-                    recyclerViewNvList.findViewHolderForAdapterPosition(i).itemView.setSelected(false);
-                view.setSelected(true);*/
-                nvListRecyclerAdapter.setSeletedPosition(position);
-
-                load_NvChart(selectChart);
-            }
-
-            @Override
-            public void onLongClick(View view, int position) {
-
-            }
-        }));
         setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(0),nvListRecyclerAdapter.getPageCnt(0));
 
     }
@@ -697,6 +760,7 @@ public class MainActivity extends AppCompatActivity
 
     public void load_NvChart(final String chartNo){
         if(nvListRecyclerAdapter == null){
+            Log.e("load_nvchart","asd");
             loadDBList();
         }
 
@@ -765,10 +829,13 @@ public class MainActivity extends AppCompatActivity
             ft.replace(R.id.frmMain,fragment);
             ft.commit();*/
 
-            sendMessage(MsgType.NVCHART_RELEASE,true);
+            //sendMessage(MsgType.NVCHART_RELEASE,true);
             if(findViewById(R.id.backgroundImage).getVisibility()==View.VISIBLE){
                 super.onBackPressed();
 
+            }else{
+                sendMessage(MsgType.CLOSE_CHART,"");
+                selectChart="";
             }
         }
     }
@@ -777,9 +844,6 @@ public class MainActivity extends AppCompatActivity
 
         String[] splitVersion = version.split("\\.");
         Log.e("version=","v?"+version);
-        for(int i=0;i<splitVersion.length;i++){
-            Log.e("version=","v?"+splitVersion[i]);
-        }
         nVersion =  Integer.parseInt(splitVersion[0])*100 +Integer.parseInt(splitVersion[1])*10 + Integer.parseInt(splitVersion[2]);
         Log.e("version=","v?"+nVersion);
         return nVersion;

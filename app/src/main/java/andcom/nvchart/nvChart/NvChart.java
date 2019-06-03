@@ -1,17 +1,17 @@
 package andcom.nvchart.nvChart;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -21,7 +21,6 @@ import android.view.Display;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -35,35 +34,28 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.jpegkit.Jpeg;
-import com.jpegkit.JpegFile;
-import com.jpegkit.JpegKit;
 import com.samsung.android.sdk.SsdkUnsupportedException;
-import com.samsung.android.sdk.composer.SpenComposerView;
-import com.samsung.android.sdk.composer.SpenScrollListener;
-import com.samsung.android.sdk.composer.document.SpenSDoc;
 import com.samsung.android.sdk.pen.Spen;
 import com.samsung.android.sdk.pen.SpenSettingPenInfo;
-import com.samsung.android.sdk.pen.SpenSettingTextInfo;
 import com.samsung.android.sdk.pen.document.SpenNoteDoc;
 import com.samsung.android.sdk.pen.document.SpenObjectBase;
 import com.samsung.android.sdk.pen.document.SpenObjectImage;
+import com.samsung.android.sdk.pen.document.SpenObjectLine;
 import com.samsung.android.sdk.pen.document.SpenObjectShape;
 import com.samsung.android.sdk.pen.document.SpenObjectStroke;
 import com.samsung.android.sdk.pen.document.SpenObjectTextBox;
 import com.samsung.android.sdk.pen.document.SpenPageDoc;
 import com.samsung.android.sdk.pen.document.textspan.SpenFontSizeSpan;
-import com.samsung.android.sdk.pen.document.textspan.SpenForegroundColorSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenLineSpacingParagraph;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextParagraphBase;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextSpanBase;
+import com.samsung.android.sdk.pen.engine.SpenContextMenu;
 import com.samsung.android.sdk.pen.engine.SpenContextMenuItemInfo;
 import com.samsung.android.sdk.pen.engine.SpenControlBase;
 import com.samsung.android.sdk.pen.engine.SpenControlListener;
 import com.samsung.android.sdk.pen.engine.SpenFlickListener;
 import com.samsung.android.sdk.pen.engine.SpenLongPressListener;
-import com.samsung.android.sdk.pen.engine.SpenPageDragListener;
 import com.samsung.android.sdk.pen.engine.SpenSurfaceView;
-import com.samsung.android.sdk.pen.engine.SpenTextChangeListener;
 import com.samsung.android.sdk.pen.engine.SpenTouchListener;
 import com.samsung.android.sdk.pen.settingui.SpenSettingPenLayout;
 import com.samsung.android.sdk.pen.settingui.SpenSettingRemoverLayout;
@@ -79,10 +71,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
 import andcom.nvchart.ASyncImageSocket;
+import andcom.nvchart.ASyncSocket;
 import andcom.nvchart.MainActivity;
 import andcom.nvchart.MakeJSONData;
 import andcom.nvchart.MsgType;
@@ -92,16 +84,16 @@ import andcom.nvchart.R;
 import andcom.nvchart.ToolButtonListener;
 import andcom.nvchart.util.FadeAnimation;
 import andcom.nvchart.util.LoadingFragment;
+import andcom.nvchart.util.LoadingProgress;
 import andcom.nvchart.util.PushAnimation;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import cn.pedant.SweetAlert.SweetAlertDialog;
 import es.dmoral.toasty.Toasty;
 
-public class NvChart extends LoadingFragment implements ToolButtonListener {
+public class NvChart extends LoadingFragment implements ToolButtonListener,SpenContextMenu.ContextMenuListener {
     private static final String FRAGMENT_NAME="NVCHART";
     private static final String TAG="NVCHART";
     private final int MODE_PEN = 0;
@@ -118,6 +110,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
     private final int CONTEXT_MENU_CUT_ID = 11;
     private final int CONTEXT_MENU_COPY_ID = 12;
     private final int CONTEXT_MENU_DELETE_ID = 13;
+    private final int CONTEXT_MENU_SELECTALL_ID = 13;
 
 
     String state ;
@@ -143,6 +136,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
     private LinearLayout progressBar;
     private CardView penOption,textOption;
     private ViewTreeObserver vto;
+    SpenContextMenu menu;
     boolean isSpenFeatureEnabled = false;
     PointF[] points;
     float[] pressures;
@@ -151,8 +145,13 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
     Jpeg jpg;
     int layoutWidth;
     NvData nvData;
+    File fileClip;
+    int objectCnt;
+
+    float longPressRawX, longPressRawY,longPressX,longPressY;
 
     static Context context;
+    Context mainContext;
 
     int load=2;
     static long transfer;
@@ -160,6 +159,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
 
     public static Handler handler;
     GestureDetector gestuerDetector = null;
+    LoadingProgress loading ;
 
     public String getNodekey() {
         return nodekey;
@@ -225,10 +225,56 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
 
     private JSONObject jData;
 
+    public NvChart(){}
 
-    public NvChart(){
-        Log.e("NvChartConstruct","Load NvChartFragment");
+    @Override
+    public void onSelected(int i) {
+        //붙여넣기
+        Log.e("onItemSeleted","ID "+i);
+        switch (i){
+            case CONTEXT_MENU_PASTE_ID :
+                ArrayList<SpenObjectBase> items= mSpenNoteDoc.restoreObjectList(fileClip.getAbsolutePath());
+                RectF total=new RectF();
+                total=items.get(0).getRect();
 
+                for(SpenObjectBase item : items){
+                    total.left =    total.left>item.getRect().left? item.getRect().left:total.left;
+                    total.top =     total.top>item.getRect().top? item.getRect().top:total.top;
+                    total.right =   total.right<item.getRect().right? item.getRect().right:total.right;
+                    total.bottom =  total.bottom<item.getRect().bottom? item.getRect().bottom:total.bottom;
+                }
+
+
+                float dx,dy;
+                dx=longPressX-total.centerX();
+                dy=longPressY-total.centerY();
+
+                for(SpenObjectBase item : items){
+                    RectF rect = item.getRect();
+                    Log.d("onItemSeleted","rect "+rect);
+                    Log.e("onItemSeleted","centerX "+rect.centerX()+" centerY "+rect.centerY());
+                    Log.e("onItemSeleted","longPressX "+longPressX+" longPressY "+longPressY);
+
+                    RectF newRect = new RectF(rect.left+dx,rect.top+dy,rect.right+dx,rect.bottom+dy);
+
+                    item.setRect(newRect,false);
+                    Log.e("onItemSeleted","rect "+newRect);
+                    Log.e("onItemSeleted","centerX "+newRect.centerX()+" centerY "+newRect.centerY());
+
+                    mSpenPageDoc.appendObject(item);
+                }
+                mSpenPageDoc.selectObject(items);
+                mSpenSurfaceView.update();
+                menu.close();
+                break;
+
+            case CONTEXT_MENU_SELECTALL_ID:
+                mSpenPageDoc.selectObject(mSpenPageDoc.getObjectList());
+                mSpenSurfaceView.update();
+
+                menu.close();
+                break;
+        }
     }
 
     enum TOOL_NAME {
@@ -311,6 +357,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         try{
             //
 
+            NvChartAsyncTask task = new NvChartAsyncTask(mSpenSurfaceView,mSpenPageDoc,context);
 
             jData.put("ND_CHARTNO",getChartNo());
             jData.put("DB",getDB());
@@ -321,10 +368,10 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
             setPageLastNo(NvListRecyclerAdapter.getInstance().getPageCnt(getNodekey()));
             NvListRecyclerAdapter.getInstance().setSeletedPosition(NvListRecyclerAdapter.getInstance().getPageIndex(getNodekey()));
             NvListRecyclerAdapter.getInstance().notifyDataSetChanged();
-            loadNvData(jData.toString());
+            //loadNvData(jData.toString());
+            task.execute(jData.toString());
 
             setPageIndicator();
-
         }catch (JSONException je){
             je.printStackTrace();
         }
@@ -449,8 +496,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
     }
     public void onClicked(View v){
         String tag = v.getTag().toString();
-        Log.e("NvChart", tag + " clicked");
 
+
+        Log.e("NvChart", tag + " clicked");
         if(mSpenSurfaceView==null || mSpenPageDoc==null)
             return;
 
@@ -860,10 +908,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
             return false;
         }
         ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
-
-        boolean isChange=false;
+        boolean isChange=objects.size() != objectCnt;
         for(SpenObjectBase objectBase : objects){
-            Log.e("saveChart","changed ? "+objectBase.isChanged());
             if(objectBase.isChanged()){
                 isChange=true;
                 //break;
@@ -871,191 +917,189 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         }
         return isChange;
     }
-    private boolean saveChart(){
-        boolean saveSuccess=false;
-        try{
-            JSONObject sendData = MakeJSONData.get(MsgType.SAVE_NVCHART,getDB(),getChartNo(),getNodekey(),String.valueOf(getPageNo()));
-            String cSendData = new String();
 
-            JSONArray arrStrokes = new JSONArray();
-            JSONArray arrTextboxes = new JSONArray();
-            JSONArray arrImage = new JSONArray();
-            ArrayList<Bitmap> bitmaps = new ArrayList<>();
-            int imageIndex = 0;
-            ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
-
-
-            if(!isChanged()){
-                Toasty.info(context,"변경 사항이 없습니다.").show();
-                return false;
+    @SuppressLint("StaticFieldLeak")
+    private void saveChart(){
+        new AsyncTask<Void,String,byte[]>(){
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+                LoadingProgress.getInstance().progressON((Activity) context,"변경 사항을 저장 합니다.");
             }
-            for(SpenObjectBase objectBase : objects){
+            @Override
+            protected byte[] doInBackground(Void... voids) {
+                byte[] bSendData = new byte[0];
+                try {
 
-                if(objectBase.getType()==SpenPageDoc.FIND_TYPE_STROKE){
-                    SpenObjectStroke stroke = (SpenObjectStroke)objectBase;
-                    String cStroke = new String();
-                    String penMode = stroke.getPenName().contains("InkPen") ? "1" : "2";
-                    String penSize = new String();
-                    String penColor = new String();
-                    if(penMode.equals("1")){
-                        penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
-                        penColor= NvConstant.getPenColorCode(stroke.getColor());
+                    JSONObject sendData = MakeJSONData.get(MsgType.SAVE_NVCHART,getDB(),getChartNo(),getNodekey(),String.valueOf(getPageNo()));
+                    String cSendData = new String();
 
-                        Log.w("pen Color","color "+stroke.getColor() + " ->" + penColor);
+                    JSONArray arrStrokes = new JSONArray();
+                    JSONArray arrTextboxes = new JSONArray();
+                    JSONArray arrImage = new JSONArray();
+                    ArrayList<Bitmap> bitmaps = new ArrayList<>();
+                    int imageIndex = 0;
+                    ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
 
-                    }else{
-                        penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
-                        penColor= NvConstant.getPenColorCode(stroke.getColor());
+
+                    if(!isChanged()){
+                        //Toasty.info(context,"변경 사항이 없습니다.").show();
+                        sendMessageMe(MsgType.TOAST_MSG,"변경 사항이 없습니다.");
+                        return null;
                     }
-                    cStroke = getDecToHex(penMode+penSize,2)+getDecToHex(penColor,2);       //4자리 헤더 생성
+                    for(SpenObjectBase objectBase : objects){
+
+                        if(objectBase.getType()==SpenPageDoc.FIND_TYPE_STROKE){
+                            SpenObjectStroke stroke = (SpenObjectStroke)objectBase;
+                            String cStroke = new String();
+                            String penMode = stroke.getPenName().contains("InkPen") ? "1" : "2";
+                            String penSize = new String();
+                            String penColor = new String();
+                            if(penMode.equals("1")){
+                                penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
+                                penColor= NvConstant.getPenColorCode(stroke.getColor());
+
+                                Log.w("pen Color","color "+stroke.getColor() + " ->" + penColor);
+
+                            }else{
+                                penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
+                                penColor= NvConstant.getPenColorCode(stroke.getColor());
+                            }
+                            cStroke = getDecToHex(penMode+penSize,2)+getDecToHex(penColor,2);       //4자리 헤더 생성
 
 
-                    float[] pointsX = stroke.getXPoints();
-                    float[] pointsY = stroke.getYPoints();
+                            float[] pointsX = stroke.getXPoints();
+                            float[] pointsY = stroke.getYPoints();
+                            Log.e("saveChart","stroke");
 
-                    for(int i =0 ; i < pointsX.length ; i++){
-                        float tempX = pointsX[i]*NvData.ScaleWidth/jpg.getWidth()+NvData.ScaleLeft;
-                        float tempY = pointsY[i]*NvData.ScaleHeight/jpg.getHeight()+NvData.ScaleTop;
-                        cStroke +=getDecToHex(String.valueOf((long)tempX),4);
-                        cStroke +=getDecToHex(String.valueOf((long)tempY),4);
+                            for(int i =0 ; i < pointsX.length ; i++){
+                                float tempX = pointsX[i]*NvData.ScaleWidth/jpg.getWidth()+NvData.ScaleLeft;
+                                float tempY = pointsY[i]*NvData.ScaleHeight/jpg.getHeight()+NvData.ScaleTop;
+                                Log.d("saveChart","X="+tempX+", Y="+tempY);
+                                cStroke +=getDecToHex(String.valueOf((long)tempX),4);
+                                cStroke +=getDecToHex(String.valueOf((long)tempY),4);
+                            }
+                            JSONObject jStroke = new JSONObject();
+                            jStroke.put("BYTE",cStroke);
+                            arrStrokes.put(jStroke);
+
+                        }
+                        if(objectBase.getType()==SpenPageDoc.FIND_TYPE_TEXT_BOX && objectBase.isSelectable() ){
+                            SpenObjectTextBox textBox = (SpenObjectTextBox) objectBase;
+                            JSONObject jTextBox = new JSONObject();
+                            jTextBox.put("COLOR",NvConstant.getTextColorCode(textBox.getTextColor()));
+                            RectF rect = textBox.getRect();
+                            String desc = textBox.getText();
+                            int count=new Integer(1);
+                            int i=new Integer(0);
+                            if(desc.equals("")){
+                                break;
+                            }
+                            while((i=desc.indexOf("\n",i+1))!=-1){
+                                count++;
+                            }
+
+                            rect.bottom = (41+nvData.ScaleHeight/69*count);
+
+                            jTextBox.put("POSITION",nvData.getOriginPosition(rect,NvConstant.TEXT_OBJ));
+
+                            jTextBox.put("DESC",textBox.getText().replace("\n","\r\n"));
+
+                            arrTextboxes.put(jTextBox);
+                        }
+                        if(objectBase.getType()==3){
+
+                            SpenObjectImage imageObject = (SpenObjectImage) objectBase;
+                            JSONObject jImage = new JSONObject();
+                            RectF rect = imageObject.getRect();
+                            jImage.put("POSITION",nvData.getOriginPosition(rect,NvConstant.IMAGE_OBJ));
+                            String index=String.format("%03d",++imageIndex);
+                            Log.e("Imege","Index "+index);
+
+                                /*while(index.length()<3){
+                                    index = "0"+index;
+                                }*/
+                            jImage.put("INDEX",index);
+                            bitmaps.add(imageObject.getImage());
+                            arrImage.put(jImage);
+                        }
                     }
-                    JSONObject jStroke = new JSONObject();
-                    jStroke.put("BYTE",cStroke);
-                    arrStrokes.put(jStroke);
-
-                }
-                if(objectBase.getType()==SpenPageDoc.FIND_TYPE_TEXT_BOX && objectBase.isSelectable() ){
-                    SpenObjectTextBox textBox = (SpenObjectTextBox) objectBase;
-                    JSONObject jTextBox = new JSONObject();
-                    jTextBox.put("COLOR",NvConstant.getTextColorCode(textBox.getTextColor()));
-                    RectF rect = textBox.getRect();
-                    String desc = textBox.getText();
-                    int count=new Integer(1);
-                    int i=new Integer(0);
-                    if(desc.equals("")){
-                        break;
-                    }
-                    while((i=desc.indexOf("\n",i+1))!=-1){
-                        count++;
-                    }
-
-                    rect.bottom = (41+nvData.ScaleHeight/69*count);
-
-                    jTextBox.put("POSITION",nvData.getOriginPosition(rect,NvConstant.TEXT_OBJ));
-
-                    jTextBox.put("DESC",textBox.getText().replace("\n","\r\n"));
-
-                    arrTextboxes.put(jTextBox);
-                }
-                if(objectBase.getType()==3){
-
-                    SpenObjectImage imageObject = (SpenObjectImage) objectBase;
-                    JSONObject jImage = new JSONObject();
-                    RectF rect = imageObject.getRect();
-                    jImage.put("POSITION",nvData.getOriginPosition(rect,NvConstant.IMAGE_OBJ));
-                    String index=String.format("%03d",++imageIndex);
-                    Log.e("Imege","Index "+index);
-
-                            /*while(index.length()<3){
-                                index = "0"+index;
-                            }*/
-                    jImage.put("INDEX",index);
-                    bitmaps.add(imageObject.getImage());
-                    arrImage.put(jImage);
-                }
-            }
                     sendData.put("PenData",arrStrokes);
                     sendData.put("TextBox",arrTextboxes);
                     sendData.put("Image",arrImage);
-/*
-            JSONObject temp = new JSONObject(nvData.cJsonData);
-            sendData.put("PenData",temp.getJSONArray("PenData"));
-            sendData.put("TextBox",temp.getJSONArray("TextBox"));
-            sendData.put("Image",temp.getJSONArray("Image"));*/
 
-            JSONArray image = sendData.getJSONArray("Image");
-            cSendData = sendData.toString(1).replace("\\/","/")+"\n";
+                    JSONArray image = sendData.getJSONArray("Image");
+                    cSendData = sendData.toString(1).replace("\\/","/")+"\n";
 
-            byte[] bSendData = new byte[0];
-            //bSendData=bitmapToByteArray(bitmaps.get(0));
-            bSendData = cSendData.getBytes("EUC-KR");
-            //bSendData = appendByte(bSendData,nvData.tempImage);   //받았던거 그대로 보내기
-            //Log.e("temp Length","길이 "+nvData.tempImage.length);
-                    /*for(int i=0;i<image.length();i++){
+                    bSendData = new byte[0];
+                    bSendData = cSendData.getBytes("EUC-KR");
+                    //bSendData = appendByte(bSendData,nvData.tempImage);   //받았던거 그대로 보내기
+                    //Log.e("temp Length","길이 "+nvData.tempImage.length);
+                    for(int i=0;i<bitmaps.size();i++){
+                        Log.e("Index","index = "+ i);
                         String index = image.getJSONObject(i).getString("INDEX");
-                        cSendData = cSendData + "<---AndcomData_Image"+index+"---\n";
-                        cSendData = cSendData + new String(getBase64String(bitmaps.get(i))) + "\n";
+                        bSendData = appendByte(bSendData,("<---AndcomData_Image"+index+"---\r\n").getBytes()) ;
 
-                        cSendData = cSendData + "---AndcomData_Image"+index+"--->\n";
-                    }*/
-            for(int i=0;i<bitmaps.size();i++){
-                Log.e("Index","index = "+ i);
-                String index = image.getJSONObject(i).getString("INDEX");
-                bSendData = appendByte(bSendData,("<---AndcomData_Image"+index+"---\r\n").getBytes()) ;
+                        bSendData = appendByte(bSendData,bitmapToByteArray(bitmaps.get(i)));
+                        bSendData = appendByte(bSendData,"\r\n".getBytes("EUC-KR"));
 
-                bSendData = appendByte(bSendData,bitmapToByteArray(bitmaps.get(i)));
-                bSendData = appendByte(bSendData,"\r\n".getBytes("EUC-KR"));
-
-                bSendData = appendByte(bSendData,("---AndcomData_Image"+index+"--->\r\n").getBytes("EUC-KR"));
+                        bSendData = appendByte(bSendData,("---AndcomData_Image"+index+"--->\r\n").getBytes("EUC-KR"));
+                    }
+                    bSendData = appendByte(bSendData,"---AndcomData_END---".getBytes("EUC-KR"));
+                    int maxLogSize = 1000;
+                    for(int i = 0; i <= cSendData.length() / maxLogSize; i++) {
+                        int start = i * maxLogSize;
+                        int end = (i+1) * maxLogSize;
+                        end = end > cSendData.length() ? cSendData.length() : end;
+                        Log.v("SendData", cSendData.substring(start, end));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                } finally {
+                }
+                return bSendData;
             }
-            bSendData = appendByte(bSendData,"---AndcomData_END---".getBytes("EUC-KR"));
-            int maxLogSize = 1000;
-            for(int i = 0; i <= cSendData.length() / maxLogSize; i++) {
-                int start = i * maxLogSize;
-                int end = (i+1) * maxLogSize;
-                end = end > cSendData.length() ? cSendData.length() : end;
-                Log.v("SendData", cSendData.substring(start, end));
+            @Override
+            protected void onProgressUpdate(String... values) {
+                super.onProgressUpdate(values);
+                //LoadingProgress.getInstance().progressSET(values[0]);
             }
-            //Log.e("sendData",cSendData.toString().replace("\\/","/"));
+            @Override
+            protected void onPostExecute(byte[] bData) {
+                super.onPostExecute(bData);
+                ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext, Prefer.getPrefString("key_ip", ""), Integer.parseInt(Prefer.getPrefString("key_port", "80")), new ASyncImageSocket.AsyncResponse() {
+                    @Override
+                    public void processFinish(String response) {
+                        if(response.contains("1")){
 
-            //test
+                            //Toasty.info(context,"저장 성공").show();
+                            sendMessageMe(MsgType.TOAST_MSG,"저장 성공");
+                            mSpenPageDoc.clearChangedFlag();
+                            objectCnt = mSpenPageDoc.getObjectCount(false);
+                        }else{
+                            JSONObject jResult = null;
+                            try {
+                                jResult = new JSONObject(response);
+                                //Toasty.error(context,"저장 실패. 다시 시도해주세요."+"\r\n원인:"+jResult.getString("Msg")).show();
+                                sendMessageMe(MsgType.TOAST_MSG,"저장 실패. 다시 시도해주세요."+"\r\n원인:"+jResult.getString("Msg"));
 
-            //
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
+                if(bData !=null){
+                    socket.execute(bData);
 
-            //전송하기
-            //ASyncTextSocket aSyncTextSocket = new ASyncTextSocket((Activity) mContext,"192.168.10.109",80);
-            //String result = aSyncTextSocket.execute(cSendData).get();
-
-            //ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.186",1235);
-            //ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,"192.168.10.109",80);
-            //String result = socket.execute(bSendData).get();
-                        /*File fTemp = new File(mContext.getFilesDir()+File.separator+"file");
-                        byte[] btemp = new byte[(int)fTemp.length()];
-
-                        FileInputStream fis = new FileInputStream(fTemp);
-                        fis.read(btemp);
-                        fis.close();
-                        bSendData = appendByte(bSendData,btemp);
-*/
-            ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext,Prefer.getPrefString("key_ip",""),Integer.parseInt(Prefer.getPrefString("key_port","80")));
-            String result = socket.execute(bSendData).get();
-            Log.e("saveChart","result = "+result);
-
-            if(result.contains("1")){
-                Toasty.info(context,"저장 성공").show();
-                saveSuccess =true;
-                mSpenPageDoc.clearChangedFlag();
-            }else{
-                JSONObject jResult = new JSONObject(result);
-                Toasty.error(context,"저장 실패. 다시 시도해주세요."+"\r\n원인:"+jResult.getString("Msg")).show();
-                saveSuccess=false;
+                }else{
+                    LoadingProgress.getInstance().progressOFF();
+                }
             }
+        }.execute();
 
-        }catch (JSONException je){
-            je.printStackTrace();
-        }catch (ExecutionException ee){
-            ee.printStackTrace();
-        }catch (InterruptedException ie){
-            ie.printStackTrace();
-        }catch (UnsupportedEncodingException uee){
-            uee.printStackTrace();
-        }/*catch (FileNotFoundException ffe){
-                    ffe.printStackTrace();
-                }*/catch (IOException ioe){
-            ioe.printStackTrace();
-        }
-
-        return saveSuccess;
     }
     public byte[] bitmapToByteArray( Bitmap $bitmap ) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream() ;
@@ -1089,13 +1133,14 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
     private String getDecToHex(String dec,int length){
 
         Long intDec = Long.parseLong(dec);
-        //Log.e("getDecToHex","before  "+intDec);
 
         String returnValue =  Long.toHexString(intDec).toUpperCase();
         while(returnValue.length()<length){
             returnValue = "0" + returnValue;
         }
-        //Log.e("getDecToHex","after  "+returnValue);
+        if(returnValue.length()>4){
+            returnValue = returnValue.substring(returnValue.length()-4);
+        }
 
         return returnValue;
     }
@@ -1149,7 +1194,6 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
             Toast.makeText(mContext,"초기화 실패",Toast.LENGTH_SHORT).show();
             e1.getStackTrace();
         }
-        Toast.makeText(mContext,"초기화 성공" + isSpenFeatureEnabled,Toast.LENGTH_SHORT).show();
 
         RelativeLayout spenViewLayout = (RelativeLayout) getView().findViewById(R.id.spenViewLayout);
         FrameLayout spenViewContainer = (FrameLayout)getView().findViewById(R.id.spenViewContainer);
@@ -1165,6 +1209,57 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         mSpenSurfaceView.setFlickListener(onFlickListener);
         mSpenSurfaceView.setControlListener(spenControlListener);
 
+        try{
+            fileClip = new File(mContext.getFilesDir()+File.separator+"clip");
+            if(!fileClip.canRead()){
+                fileClip.createNewFile();
+            }
+
+
+        }catch (IOException ie){
+            ie.printStackTrace();
+        }
+        mSpenSurfaceView.setLongPressListener(new SpenLongPressListener() {
+            @Override
+            public void onLongPressed(MotionEvent motionEvent) {
+                Log.d("onItem","x="+motionEvent.getX()+"y="+motionEvent.getY());
+                Log.d("onItem","rawx="+motionEvent.getRawX()+"rawy="+motionEvent.getRawY());
+                if(mMode==MODE_SELECTION){
+                    PointF canvasPoint=getCanvasPoint(motionEvent);
+                    longPressX=canvasPoint.x;
+                    longPressY=canvasPoint.y;
+                    longPressRawX = motionEvent.getRawX();
+                    longPressRawY = motionEvent.getRawY();
+
+                    ArrayList<SpenContextMenuItemInfo> items = new ArrayList<>();
+                    SpenContextMenuItemInfo item = new SpenContextMenuItemInfo();
+                    item.id=CONTEXT_MENU_PASTE_ID;
+                    item.name="붙여넣기";
+                    SpenContextMenuItemInfo select_all = new SpenContextMenuItemInfo();
+                    select_all.id=CONTEXT_MENU_SELECTALL_ID;
+                    select_all.name="전체 선택";
+
+
+                    items.add(item);
+                    items.add(select_all);
+
+                    menu = new SpenContextMenu(mContext,mSpenSurfaceView,items,NvChart.this);
+
+                    Rect rect = menu.getRect();
+                    rect.left+= longPressRawX;
+                    rect.right+= longPressRawX;
+                    rect.top+= longPressRawY;
+                    rect.bottom+= longPressRawY;
+                    menu.setRect(rect);
+
+
+
+                    menu.show();
+
+                }
+
+            }
+        });
         if(mSpenSurfaceView == null){
             Toast.makeText(mContext, "Cannot create new SpenView.",
                     Toast.LENGTH_SHORT).show();
@@ -1326,7 +1421,13 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         message.obj=msg;
         MainActivity.handler.sendMessage(message);
     }
-    private void loadNvData(String Data){
+    private void sendMessageMe(int msgWhat,Object msg){
+        Message message = handler.obtainMessage();
+        message.what=msgWhat;
+        message.obj=msg;
+        handler.sendMessage(message);
+    }
+    private void loadNvData(NvData nvData){
         long start = System.currentTimeMillis();
         double packetLength =0;
         double pointStrokeTime=0;
@@ -1335,9 +1436,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         double pointImageTime=0;
         double update=0;
         try{
+            objectCnt=0;
+            //nvData = new NvData(mContext,mSpenPageDoc,Data);
 
-
-            nvData = new NvData(mContext,mSpenPageDoc,Data);
             initSpen(nvData);
             setSmartScroll(true);
 
@@ -1346,13 +1447,37 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
 
             String[] arrStroke = nvData.getPenData();
 
+            Log.e("NvChartTask","3");
 
             double textStart = System.currentTimeMillis();
             for(SpenObjectTextBox object : nvData.getTextObjectData(NvConstant.TEXT_OBJ)){
                 mSpenPageDoc.appendObject(object);
+
+                ///Rect test
+
+                RectF rect = object.getRect();
+                PointF p1 = new PointF(rect.left,rect.top);
+                PointF p2 = new PointF(rect.left,rect.bottom);
+                PointF p3 = new PointF(rect.right,rect.top);
+                PointF p4 = new PointF(rect.right,rect.bottom);
+
+                SpenObjectLine line1 = new SpenObjectLine(0,p1,p2);
+                SpenObjectLine line2 = new SpenObjectLine(0,p1,p3);
+                SpenObjectLine line3 = new SpenObjectLine(0,p2,p4);
+                SpenObjectLine line4 = new SpenObjectLine(0,p3,p4);
+
+                mSpenPageDoc.appendObject(line1);
+                mSpenPageDoc.appendObject(line2);
+                mSpenPageDoc.appendObject(line3);
+                mSpenPageDoc.appendObject(line4);
+
+
+
+
+
                 //mSpenPageDoc.selectObject(object);
                 //mSpenSurfaceView.update();
-                Log.e("RectF-2",object.getRect().toString());
+                Log.e("RectF-2",object.getRect().toString()+object.getFont());
 
             }
             pointTextTime = (System.currentTimeMillis()-textStart)/1000.0000;
@@ -1389,7 +1514,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
             mSpenSurfaceView.update();
             mSpenPageDoc.removeSelectedObject();
             mSpenSurfaceView.update();
+            Log.e("NvChartTask","4");
 
+            objectCnt = mSpenPageDoc.getObjectCount(false);
             mSpenPageDoc.clearChangedFlag();
 
             update = (System.currentTimeMillis()-updateStart)/1000.0000;
@@ -1422,7 +1549,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         Toast.makeText(mContext,toast,Toast.LENGTH_LONG).show();
         Log.e("TimeDebug",toast);
         mSpenPageDoc.clearHistory();
-        hideLoader();
+        LoadingProgress.getInstance().progressOFF();
 
     }
 
@@ -1461,9 +1588,6 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
                 case MotionEvent.ACTION_CANCEL:
                 case MotionEvent.ACTION_UP:
                     break;
-            }
-            if(event.getDevice().getName().contains("sec_touchscreen")){
-                Log.d("touchListener","getY"+event.getRawY());
             }
             gestuerDetector.onTouchEvent(event);
             return false;
@@ -1514,22 +1638,24 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
                         while (tempX<mSpenPageDoc.getWidth()){
                             Log.e("touchEvent",canvasPos.x+", tempX="+tempX+", "+y+" ; point "+point + bitmap.getPixel((int)tempX,(int)y));
 
-                            if(point != bitmap.getPixel((int)tempX,(int)canvasPos.y)){
+                            if(point != bitmap.getPixel((int)tempX,(int)canvasPos.y) ){
                                 break;
                             }
                             tempX=tempX+1;
                         }
                         width=tempX;
                         Log.e("touchEvent","x="+x+", tempX="+tempX+", width="+width);
-/*
+
                         while(y>0){
-                            if(point != bitmap.getPixel((int)canvasPos.x,(int)y)){
+                            if(point != bitmap.getPixel((int)canvasPos.x,(int)y) || mSpenPageDoc.findObjectAtPosition(SpenPageDoc.FIND_TYPE_TEXT_BOX,canvasPos.x,y,10).size()>0){
                                 //Log.e("touchEvent",x+", "+y+" ; point "+point + bitmap.getPixel((int)x,(int)y));
                                 break;
                             }
                             y=y-1;
 
                         }
+                        y=y+10;
+                        /*
                         float tempY=canvasPos.y;
 
                         while(tempY<mSpenPageDoc.getHeight()){
@@ -1539,20 +1665,24 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
                             tempY=tempY+1;
                         }
                         height=tempY;
-                        Log.e("touchEvent","x="+x+", y="+y+", width="+width+", height="+height);*/
+                        Log.e("touchEvent","x="+x+", y="+y+", width="+width+", height="+height);
+                        */
                         textObj.setMargin(0,0,0,0);
                         float textBoxHeight = getTextBoxDefaultHeight(textObj);
 
                         if ((y + textBoxHeight) > mSpenPageDoc.getHeight()) {
                             y = mSpenPageDoc.getHeight() - textBoxHeight;
                         }
-                        RectF rect = new RectF(x, y-10, width, y+10);
+                        RectF rect = new RectF(x, y, width, y);
+                        Log.d("textObj",rect.toString());
                         textObj.setRect(rect, true);
 
                         textObj.setRotatable(false);
                         textObj.setFontSize(18);
                         textObj.setTextColor(Prefer.getPrefInt("TextColor",0));
-                        
+                        Log.d("textObj",textObj.getRect().toString());
+
+
                         mSpenPageDoc.appendObject(textObj);
                         mSpenPageDoc.selectObject(textObj);
                         mSpenSurfaceView.update();
@@ -1618,11 +1748,11 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
         }
 
         @Override
-        public boolean onCreated(ArrayList<SpenObjectBase> arrayList, ArrayList<Rect> arrayList1, ArrayList<SpenContextMenuItemInfo> menu, ArrayList<Integer> arrayList3, int i, PointF pointF) {
-            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_PASTE_ID,getResources().getDrawable(R.drawable.sdk_note_voice_btn_ic_deleted) ,"붙여넣기", true));
-            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_CUT_ID,getResources().getDrawable(R.drawable.sdk_note_voice_btn_ic_deleted) ,"잘라내기", true));
-            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_COPY_ID,getResources().getDrawable(R.drawable.sdk_voice_button_floatingview_button_circular_selector) ,"복사", true));
-            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_DELETE_ID,getResources().getDrawable(R.drawable.sdk_note_voice_btn_ic_deleted) ,"삭제", true));
+        public boolean onCreated(ArrayList<SpenObjectBase> arrayList, ArrayList<Rect> arrayList1, ArrayList<SpenContextMenuItemInfo> menu,
+                                 ArrayList<Integer> arrayList3, int i, PointF pointF) {
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_CUT_ID,"잘라내기", true));
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_COPY_ID ,"복사", true));
+            menu.add(new SpenContextMenuItemInfo(CONTEXT_MENU_DELETE_ID,"삭제", true));
 
 
             return true;
@@ -1655,8 +1785,25 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
                     mSpenSurfaceView.closeControl();
                     mSpenSurfaceView.update();
                     break;
+
+                case CONTEXT_MENU_COPY_ID :
+                    //ArrayList<SpenObjectBase> items = new ArrayList<>();
+                    //items=mSpenPageDoc.getObjectList();
+
+                    mSpenNoteDoc.backupObjectList(objectList,fileClip.getAbsolutePath());
+
+                    mSpenSurfaceView.closeControl();
+                    mSpenSurfaceView.update();
+                    break;
+                case CONTEXT_MENU_CUT_ID :
+
+                    mSpenNoteDoc.backupObjectList(objectList,fileClip.getAbsolutePath());
+                    mSpenPageDoc.removeSelectedObject();
+                    mSpenSurfaceView.closeControl();
+                    mSpenSurfaceView.update();
+                    break;
             }
-            return false;
+            return true;
         }
     };
     private final View.OnClickListener mTextObjBtnClickListener = new View.OnClickListener() {
@@ -1862,6 +2009,51 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
                     }
 
                     break;
+
+                case MsgType.CLOSE_CHART :  //닫기전 저장 확인
+                    final Message message = this.obtainMessage();
+                    message.what=MsgType.NVCHART_RELEASE;
+                    message.obj=true;
+
+                    if(isChanged()){
+                        AlertDialog.Builder dialog = new AlertDialog.Builder(mContext);
+                        dialog.setTitle("저장 확인");
+                        dialog.setMessage("변경된 내용이 있습니다. 저장하시겠습니까?");
+                        dialog.setPositiveButton("저장", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                saveChart();
+                                //handler.sendMessage(message);
+
+                            }
+                        });
+                        dialog.setNeutralButton("저장 안함", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                handler.sendMessage(message);
+
+                            }
+                        });
+                        dialog.setNegativeButton("취소", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                return;
+                            }
+                        });
+                        dialog.setCancelable(false);
+                        dialog.show();
+                    }else{
+
+
+                        handler.sendMessage(message);
+                    }
+
+                    break;
+                    case MsgType.TOAST_MSG:
+
+                        Toasty.info(context,msg.obj.toString()).show();
+
+                        break;
             }
         }
 
@@ -1885,6 +2077,58 @@ public class NvChart extends LoadingFragment implements ToolButtonListener {
             }
         }
     }
+
+
+    public class NvChartAsyncTask extends AsyncTask<String,Void,String> {
+        SpenSurfaceView _mSpenSurfaceView;
+        SpenPageDoc _mSpenPageDoc;
+        Context _context;
+
+        public NvChartAsyncTask(SpenSurfaceView _mSpenSurfaceView,
+                                SpenPageDoc _mSpenPageDoc,
+                                Context _context) {
+            super();
+            this._mSpenSurfaceView = _mSpenSurfaceView;
+            this._mSpenPageDoc = _mSpenPageDoc;
+            this._context = _context;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            Log.e("NvChartTask","onPreExcute");
+            LoadingProgress.getInstance().progressON((Activity)context,"불러오는 중");
+        }
+        @Override
+        protected String doInBackground(String... strings) {
+            Log.e("NvChartTask","doInBackground "+strings[0]);
+            String ip = Prefer.getPrefString("key_ip","");
+            int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
+            ASyncSocket socket = new ASyncSocket((Activity) _context, ip, port, new ASyncSocket.AsyncResponse() {
+                @Override
+                public void processFinish(byte[] output) {
+                    if(output==null){
+                        Toasty.error(_context,"문제가 발생했습니다. 접속상태를 확인하고 다시 시도하세요").show();
+                        LoadingProgress.getInstance().progressOFF();
+                        return;
+                    }
+                    nvData = new NvData(_context,output);
+                    loadNvData(nvData);
+                }
+            });
+            socket.execute(strings[0]);
+            return null;
+        }
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            Log.e("NvChartTask","onPostExecute \r\n" + s);
+
+        }
+
+
+    }
+
     public void onStop(){
         super.onStop();
         state = "DeActive";

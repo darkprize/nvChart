@@ -30,6 +30,11 @@ import andcom.nvchart.util.LoadingProgress;
  */
 
 public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
+
+    public interface AsyncResponse {
+        void processFinish(String response);
+    }
+    public AsyncResponse delegate = null;
     /*
     로딩화면 제어 변수
      */
@@ -65,6 +70,13 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
         this.ip=ip;
         this.port=port;
     }
+    public ASyncImageSocket(Activity activity, String ip, int port,AsyncResponse delegate){
+        this.activity = activity;
+        this.context = (Context)activity;
+        this.ip=ip;
+        this.port=port;
+        this.delegate = delegate;
+    }
     public ASyncImageSocket(Activity activity, int bMulti){
         this.activity = activity;
         this.bMulti = bMulti;
@@ -75,8 +87,6 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
         super.onPreExecute();
         Log.i(logcat,"onPreExecute");
 
-        loadingProgress = LoadingProgress.getInstance();
-        loadingProgress.progressON(activity,"불러오는 중");
     }
 
     @Override
@@ -201,7 +211,8 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
         /*loadingProgress.progressOFF();*/
-        loadingProgress.progressOFF();
+        delegate.processFinish(s);
+        LoadingProgress.getInstance().progressOFF();
 
     }
 

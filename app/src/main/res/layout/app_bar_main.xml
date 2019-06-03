@@ -105,34 +105,7 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginLeft="8dp"
-                android:background="@color/colorPrimary"
-                android:paddingLeft="10dp"
-                android:paddingTop="8dp"
-                android:paddingRight="10dp"
-                android:paddingBottom="8dp"
-                android:id="@+id/layoutUndoRedo"
-                android:clickable="false">
 
-                <ImageButton
-                    android:layout_width="50dp"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/button_undo"
-                    android:tag="undo"/>
-
-                <ImageButton
-                    android:layout_width="50dp"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/button_redo"
-                    android:tag="redo"/>
-            </LinearLayout>
 
             <View
                 android:layout_width="0dp"

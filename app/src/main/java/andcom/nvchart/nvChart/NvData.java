@@ -23,6 +23,8 @@ import com.samsung.android.sdk.pen.document.textspan.SpenComposingSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenFontNameSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenFontSizeSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenForegroundColorSpan;
+import com.samsung.android.sdk.pen.document.textspan.SpenLineSpacingParagraph;
+import com.samsung.android.sdk.pen.document.textspan.SpenTextParagraphBase;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextSpanBase;
 
 import org.json.JSONArray;
@@ -101,7 +103,30 @@ public class NvData {
             je.printStackTrace();
         }
     }
+    public NvData(Context context,byte[] data){
+        this.data = data;
+        this.context = context;
+        String jsonData;
 
+        int len = indexOf(data,BACK_IMAGE_START.getBytes(),0) ;
+        if(len == -1 )
+            len=data.length;
+        jsonData = new String(data,0,len);
+        makeBackImage();
+
+        ScaleWidth = jpg.getWidth() * 5.08f;
+        ScaleHeight = jpg.getHeight() * 5.08f;
+        Log.e("jpgSize","w="+jpg.getWidth()+" h="+jpg.getHeight());
+        Log.e("jpgScale","w="+ScaleWidth+" h="+ScaleHeight);
+        Log.e("NvDataJsonData","JsonData = "+jsonData);
+
+        this.cJsonData = jsonData;
+        try {
+            this.jsonObject = new JSONObject(jsonData);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
     public String[] getPenData(){
         try{
             JSONArray jsonArray = jsonObject.getJSONArray("PenData");
@@ -269,6 +294,69 @@ public class NvData {
                     SpenForegroundColorSpan colorSpan = new SpenForegroundColorSpan();
                     SpenFontSizeSpan sizeSpan = new SpenFontSizeSpan();
 
+                    File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+ File.separator+"BOSANOVN.TTF");
+
+                    fontNameSpan.setName("SECLao-Bold.ttf");
+                    //fontNameSpan.setName(file.getAbsolutePath());
+                    sizeSpan.setSize(18);
+                    colorSpan.setColor(NvConstant.getColor(3,color));
+
+                    spans.add(fontNameSpan);
+                    spans.add(colorSpan);
+                    spans.add(sizeSpan);
+
+                    for(SpenTextSpanBase span : spans){
+                        span.setPosition(0,data.length());
+                    }
+                    Log.e("RectF-1",data+textPoint.toString());
+
+                    textObj.setFontSize(18);
+                    textObj.setRect(textPoint,true);
+                    textObj.setMargin(0,0,0,0);
+
+                    ArrayList<SpenTextParagraphBase> paragraphBase = new ArrayList<>();
+                    SpenLineSpacingParagraph lineSpacingParagraph = new SpenLineSpacingParagraph();
+                    lineSpacingParagraph.setLineSpacingType(SpenLineSpacingParagraph.TYPE_PIXEL);
+                    lineSpacingParagraph.setLineSpacing(0);
+                    lineSpacingParagraph.setPosition(0,data.length());
+                    paragraphBase.add(lineSpacingParagraph);
+
+                    textObj.setTextParagraph(paragraphBase);
+
+                    //textObj.setTextColor(getColor(jsonObject.getInt("COLOR"),3));
+                    //Log.e("FontName",textObj.getFont());
+                    textObj.setTextSpan(spans);
+                    lists.add(textObj);
+                }catch (JSONException je){
+                    je.printStackTrace();
+                }
+
+            }
+            /*
+            if(text.length()>20){
+                try{
+                    JSONObject jsonObject = new JSONObject(text);
+                    int color = jsonObject.getInt("COLOR");
+                    if(type==NvConstant.LABEL_OBJ && color==1){
+                        color = 0;
+                    }
+                    //String[] position = jsonObject.getString("POSITION").split("/");
+                    String data = jsonObject.getString("DESC");
+                    String line = System.getProperty("line.separator");
+                    data = data.replace("\r","");
+                    jsonObject.put("POSITION",data.length()+"/"+jsonObject.getString("POSITION"));
+
+                    SpenObjectTextBox textObj = new SpenObjectTextBox(data);
+                    //RectF textPoint = getRealPoint(x1,y1,0,0);
+                    RectF textPoint = makePosition(jsonObject.getString("POSITION"),type);
+
+                    ArrayList<SpenTextSpanBase> spans = new ArrayList<SpenTextSpanBase>();
+                    SpenFontNameSpan fontNameSpan = new SpenFontNameSpan();
+                    SpenForegroundColorSpan colorSpan = new SpenForegroundColorSpan();
+                    SpenFontSizeSpan sizeSpan = new SpenFontSizeSpan();
+                    SpenLineSpacingParagraph lineSpacingParagraph = new SpenLineSpacingParagraph();
+                    lineSpacingParagraph.setLineSpacingType(SpenLineSpacingParagraph.TYPE_PIXEL);
+                    lineSpacingParagraph.setLineSpacing(0);
 
                     File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+ File.separator+"BOSANOVN.TTF");
 
@@ -284,11 +372,13 @@ public class NvData {
                     for(SpenTextSpanBase span : spans){
                         span.setPosition(0,data.length());
                     }
-                    Log.e("RectF-1",textPoint.toString());
+                    Log.e("RectF-1",data+textPoint.toString());
 
                     textObj.setFontSize(18);
                     textObj.setRect(textPoint,true);
                     textObj.setMargin(0,0,0,0);
+
+
                     //textObj.setTextColor(getColor(jsonObject.getInt("COLOR"),3));
                     //Log.e("FontName",textObj.getFont());
                     textObj.setTextSpan(spans);
@@ -297,7 +387,7 @@ public class NvData {
                     je.printStackTrace();
                 }
 
-            }
+            }*/
         }
 
 

@@ -102,8 +102,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:visibility="gone"
+                tools:visibility="visible"
                 android:id="@+id/loading_nvlist"
-                android:background="@drawable/loading_animation"
+                android:scaleType="center"
+                android:src="@drawable/loading_animation2"
+                android:background="#59C5C6CA"
                 />
 
         </androidx.cardview.widget.CardView>

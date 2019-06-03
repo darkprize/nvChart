@@ -61,10 +61,23 @@ public class ASyncSocket extends AsyncTask<String,Void,byte[]> {
 
     private byte[] data;
 
+    public interface AsyncResponse {
+        void processFinish(byte[] output);
+    }
+    public AsyncResponse delegate = null;
+
     //
     //LoadingProgress loadingProgress;
 
     int bMulti = START_AND_END_BOTH;
+    public ASyncSocket(Activity activity, String ip, int port,AsyncResponse delegate){
+        this.activity = activity;
+        this.context = (Context)activity;
+        this.ip=ip;
+        this.port=port;
+
+        this.delegate = delegate;
+    }
     public ASyncSocket(Activity activity, String ip, int port){
         this.activity = activity;
         this.context = (Context)activity;
@@ -184,9 +197,7 @@ public class ASyncSocket extends AsyncTask<String,Void,byte[]> {
 
 
         }catch(IOException e){
-            e.getStackTrace();
             e.printStackTrace();
-            //progressOFF();
             result=null;
         }
         Log.w("AsyncSocket","result = " + result);
@@ -249,6 +260,8 @@ public class ASyncSocket extends AsyncTask<String,Void,byte[]> {
     protected void onPostExecute(byte[] s) {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
+        delegate.processFinish(s);
+
         /*loadingProgress.progressOFF();*/
 
     }

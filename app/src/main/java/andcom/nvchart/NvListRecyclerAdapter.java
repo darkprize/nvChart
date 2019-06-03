@@ -42,6 +42,7 @@ public class NvListRecyclerAdapter extends RecyclerView.Adapter<NvListRecyclerAd
             for(int i=0;i<jarrNvList.length();i++){
                 JSONObject jsonItem = jarrNvList.getJSONObject(i);
                 pageCnt.put(jsonItem.getString("NS_NODEKEY"),Integer.parseInt(jsonItem.getString("ND_PAGE_CNT")));
+                Log.e("pageCnt",Integer.parseInt(jsonItem.getString("ND_PAGE_CNT"))+"c");
                 pageIndex.put(jsonItem.getString("NS_NODEKEY"),i);
             }
             Log.e("NvListAdapter",jarrNvList+" Initializing");
@@ -92,7 +93,7 @@ public class NvListRecyclerAdapter extends RecyclerView.Adapter<NvListRecyclerAd
         String nodekey ;
         try{
             nodekey = jarrNvList.getJSONObject(position).getString("NS_NODEKEY");
-        }catch (JSONException je){
+        }catch (Exception je){
             je.printStackTrace();
             nodekey = null;
         }
@@ -103,7 +104,7 @@ public class NvListRecyclerAdapter extends RecyclerView.Adapter<NvListRecyclerAd
         String title ;
         try{
             title = jarrNvList.getJSONObject(position).getString("NS_TITLE");
-        }catch (JSONException je){
+        }catch (Exception je){
             je.printStackTrace();
             title = null;
         }
@@ -114,7 +115,7 @@ public class NvListRecyclerAdapter extends RecyclerView.Adapter<NvListRecyclerAd
         String pagecnt ;
         try{
             pagecnt = jarrNvList.getJSONObject(position).getString("ND_PAGE_CNT");
-        }catch (JSONException je){
+        }catch (Exception je){
             je.printStackTrace();
             pagecnt = null;
         }

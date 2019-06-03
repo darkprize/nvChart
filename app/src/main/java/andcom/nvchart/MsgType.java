@@ -24,6 +24,8 @@ public class MsgType {
             ,SAVE_NVCHART = 15
             ,UPDATE_PAGE_NO=16
             ,REFRESH_NVCHART = 17
-            ,NVCHART_RELEASE=18;
+            ,NVCHART_RELEASE=18
+            ,CLOSE_CHART=19
+            ,TOAST_MSG =20;
 
 }

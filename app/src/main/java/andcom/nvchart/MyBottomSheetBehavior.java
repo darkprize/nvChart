@@ -12,7 +12,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 public class MyBottomSheetBehavior<V extends View> extends BottomSheetBehavior<V> {
 
-    private boolean mLocked = true;
+    private boolean mLocked = false;
 
     public MyBottomSheetBehavior() {}
 

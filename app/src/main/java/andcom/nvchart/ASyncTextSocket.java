@@ -87,8 +87,8 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
         //port = 1235;
         //if(bMulti!=2 && bMulti!=3)
 
-        loadingProgress = LoadingProgress.getInstance();
-        loadingProgress.progressON(activity,"불러오는 중");
+        //loadingProgress = LoadingProgress.getInstance();
+        //loadingProgress.progressON(activity,"불러오는 중");
     }
 
     @Override
@@ -232,7 +232,7 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
     protected void onPostExecute(String s) {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
-        loadingProgress.progressOFF();
+        //loadingProgress.progressOFF();
 
     }
 

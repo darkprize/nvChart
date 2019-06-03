@@ -6,7 +6,7 @@
     <!-- 로고 -->
     <item android:top="0dp" android:left="0dp">
         <bitmap android:src="@drawable/notes"
-            android:gravity="center"/>
+            android:gravity="center"
+            />
     </item>
-
 </layer-list>

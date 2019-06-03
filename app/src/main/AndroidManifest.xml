@@ -16,6 +16,7 @@
         android:allowClearUserData="true"
         tools:ignore="GoogleAppIndexingWarning"
         tools:replace="android:appComponentFactory"
+        android:icon="@mipmap/ic_launcher"
         android:appComponentFactory="androidx">
         <activity
             android:name=".SplashActivity"

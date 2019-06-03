@@ -2,6 +2,7 @@ package andcom.nvchart;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -50,7 +51,7 @@ public class SendData {
             int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
 
             ASyncTextSocket socket = new ASyncTextSocket((Activity)context,ip,port);
-            String result = socket.execute(msg).get();
+            String result = socket.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,msg).get();
             if(result == null){
                 jsonObject = new JSONObject();
                 jsonObject.put("code","8");
