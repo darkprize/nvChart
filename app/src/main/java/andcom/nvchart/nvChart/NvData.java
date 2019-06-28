@@ -2,6 +2,8 @@ package andcom.nvchart.nvChart;
 
 import android.app.Activity;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -31,13 +33,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 
 import andcom.nvchart.ASyncSocket;
 import andcom.nvchart.Prefer;
+import andcom.nvchart.util.NvChartDB;
 
 public class NvData {
     private JSONObject jsonObject;
@@ -68,6 +74,7 @@ public class NvData {
     final String PACKET_END = "---AndcomData_END---";
 
     public String cJsonData;
+    private String[] dbInfo;
     NvData(Context context, SpenPageDoc spenPageDoc,String msg){
         try{
             this.spenPageDoc = spenPageDoc;
@@ -89,6 +96,9 @@ public class NvData {
             if(len == -1 )
                 len=data.length;
             jsonData = new String(data,0,len);
+            this.cJsonData = jsonData;
+            this.jsonObject = new JSONObject(jsonData);
+
             makeBackImage();
 
             ScaleWidth = jpg.getWidth() * 5.08f;
@@ -97,21 +107,26 @@ public class NvData {
             Log.e("jpgScale","w="+ScaleWidth+" h="+ScaleHeight);
             Log.e("NvDataJsonData","JsonData = "+jsonData);
 
-            this.cJsonData = jsonData;
-            this.jsonObject = new JSONObject(jsonData);
+
         }catch (Exception je){
             je.printStackTrace();
         }
     }
-    public NvData(Context context,byte[] data){
+    public NvData(Context context,byte[] data,String[] dbInfo){
         this.data = data;
         this.context = context;
-        String jsonData;
+        this.dbInfo = dbInfo;
 
         int len = indexOf(data,BACK_IMAGE_START.getBytes(),0) ;
         if(len == -1 )
             len=data.length;
-        jsonData = new String(data,0,len);
+        String jsonData = new String(data,0,len);
+        this.cJsonData = jsonData;
+        try {
+            this.jsonObject = new JSONObject(jsonData);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         makeBackImage();
 
         ScaleWidth = jpg.getWidth() * 5.08f;
@@ -120,12 +135,7 @@ public class NvData {
         Log.e("jpgScale","w="+ScaleWidth+" h="+ScaleHeight);
         Log.e("NvDataJsonData","JsonData = "+jsonData);
 
-        this.cJsonData = jsonData;
-        try {
-            this.jsonObject = new JSONObject(jsonData);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+
     }
     public String[] getPenData(){
         try{
@@ -164,17 +174,35 @@ public class NvData {
             int start=indexOf(data,BACK_IMAGE_START.getBytes(),0)+BACK_IMAGE_START.getBytes().length;
             int end=indexOf(data,BACK_IMAGE_END.getBytes(),0);
             if(end-start <0){
+                backImageFile = new File(context.getFilesDir()+File.separator+dbInfo[0]+dbInfo[1]+".jpg");
+                int size = (int)backImageFile.length();
+                backImageData = new byte[size];
+                BufferedInputStream buf = new BufferedInputStream(new FileInputStream(backImageFile));
+                buf.read(backImageData, 0, backImageData.length);
+                buf.close();
+                jpg = new Jpeg(backImageData);
+
                 return;
             }
             backImageData = new byte[end-start];
             System.arraycopy(data,start,backImageData,0,end-start);
             jpg = new Jpeg(backImageData);
 
+            //db 저장
+            /*NvChartDB nvChartDB = new NvChartDB(context,"NVCHART",null,1);
+            SQLiteDatabase sqLiteDatabase= nvChartDB.getWritableDatabase();
+            SQLiteStatement statement = sqLiteDatabase.compileStatement("update NVCHART set NVDATA = ? where DB_NO='"+dbInfo[0]+"' and NODEKEY='"+dbInfo[1]+"'");
+            statement.bindBlob(1,backImageData);
+            statement.execute();
+            statement.close();
+            sqLiteDatabase.close();
+            nvChartDB.close();*/
+
             tempImage = new byte[data.length-end];
             System.arraycopy(data,end,tempImage,0,data.length-end);
 
             long dueStart = System.currentTimeMillis();
-            backImageFile = new File(context.getFilesDir()+File.separator+"System.arraycopy.jpg");
+            backImageFile = new File(context.getFilesDir()+File.separator+dbInfo[0]+dbInfo[1]+".jpg");
             if(!backImageFile.exists())
                 backImageFile.createNewFile();
             FileOutputStream fos2 = new FileOutputStream(backImageFile);
@@ -223,8 +251,8 @@ public class NvData {
                 byte[] imageData = new byte[end-start];
                 System.arraycopy(data,start,imageData,0, end-start);
 
-
-                File fTemp = new File(context.getFilesDir()+File.separator+array.getJSONObject(i).getString("INDEX")+".jpg");
+                String index = array.getJSONObject(i).getString("INDEX");
+                File fTemp = new File(context.getFilesDir()+File.separator+index+".jpg");
                 if(!fTemp.exists())
                     fTemp.createNewFile();
                 FileOutputStream fos = new FileOutputStream(fTemp);
@@ -236,6 +264,7 @@ public class NvData {
                 RectF rect = makePosition(array.getJSONObject(i).getString("POSITION"));
                 SpenObjectImage objImg = new SpenObjectImage();
                 objImg.setImage(byteArrayToBitmap(imageData));
+                objImg.setRotatable(false);
                 //objImg.setImage(fTemp.getAbsolutePath());
                 objImg.setRect(rect,true);
 
@@ -642,6 +671,10 @@ public class NvData {
 
     public File getBackImageFile(){
         return backImageFile;
+    }
+
+    public String getBackImageFilePath(){
+        return "";
     }
 
     public double getDataSize(){

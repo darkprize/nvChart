@@ -46,11 +46,8 @@ public class SendData {
             je.getStackTrace();
         }
         try{
-            String ip = Prefer.getPrefString("key_ip","");
 
-            int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
-
-            ASyncTextSocket socket = new ASyncTextSocket((Activity)context,ip,port);
+            ASyncTextSocket socket = new ASyncTextSocket((Activity)context);
             String result = socket.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,msg).get();
             if(result == null){
                 jsonObject = new JSONObject();
@@ -82,5 +79,39 @@ public class SendData {
         }
 
         return jsonObject;
+    }
+    public static void getMessageAsync(Context context, String msg, ASyncTextSocket.AsyncResponse delegate) {
+        try{
+            Log.w("SendData","SendData msg = "+msg);
+            jsonObject = new JSONObject();
+            jsonObject.put("Code","8");
+            jsonObject.put("Msg","실행중 에러가 발생했습니다.");
+        }catch(JSONException je){
+            je.getStackTrace();
+        }
+
+        try{
+
+            ASyncTextSocket socket = new ASyncTextSocket((Activity)context,delegate);
+            socket.execute(msg);
+        }/*catch (ExecutionException ee){
+            Log.e("Socket Error","ExecutionException Error");
+            ee.getStackTrace();
+        }catch (InterruptedException ie){
+            Log.e("Socket Error","InterruptedException Error");
+            ie.getStackTrace();
+        }catch (JSONException je){
+            Log.e("Socket Error","JSONException Error");
+            je.getStackTrace();
+        }*/catch(Exception e){
+            e.printStackTrace();
+            try{
+                jsonObject.put("Msg","msg;"+e.getLocalizedMessage());
+
+            }catch (JSONException je){
+
+            }
+        }
+
     }
 }

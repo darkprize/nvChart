@@ -34,6 +34,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.jpegkit.Jpeg;
+import com.jpegkit.JpegFile;
+import com.jpegkit.JpegKit;
 import com.samsung.android.sdk.SsdkUnsupportedException;
 import com.samsung.android.sdk.pen.Spen;
 import com.samsung.android.sdk.pen.SpenSettingPenInfo;
@@ -61,6 +63,11 @@ import com.samsung.android.sdk.pen.settingui.SpenSettingPenLayout;
 import com.samsung.android.sdk.pen.settingui.SpenSettingRemoverLayout;
 import com.samsung.android.sdk.pen.settingui.SpenSettingSelectionLayout;
 import com.samsung.android.sdk.pen.settingui.SpenSettingTextLayout;
+import com.vansuita.pickimage.bean.PickResult;
+import com.vansuita.pickimage.bundle.PickSetup;
+import com.vansuita.pickimage.dialog.PickImageDialog;
+import com.vansuita.pickimage.enums.EPickType;
+import com.vansuita.pickimage.listeners.IPickResult;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -68,6 +75,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -75,6 +83,7 @@ import java.util.concurrent.ExecutionException;
 
 import andcom.nvchart.ASyncImageSocket;
 import andcom.nvchart.ASyncSocket;
+import andcom.nvchart.ASyncTextSocket;
 import andcom.nvchart.MainActivity;
 import andcom.nvchart.MakeJSONData;
 import andcom.nvchart.MsgType;
@@ -88,9 +97,13 @@ import andcom.nvchart.util.LoadingProgress;
 import andcom.nvchart.util.PushAnimation;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
+
+import andcom.nvchart.util.SaveDialog;
 import es.dmoral.toasty.Toasty;
 
 public class NvChart extends LoadingFragment implements ToolButtonListener,SpenContextMenu.ContextMenuListener {
@@ -146,7 +159,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     int layoutWidth;
     NvData nvData;
     File fileClip;
-    int objectCnt;
+    int objectCnt,imageIndex;
 
     float longPressRawX, longPressRawY,longPressX,longPressY;
 
@@ -159,7 +172,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
     public static Handler handler;
     GestureDetector gestuerDetector = null;
-    LoadingProgress loading ;
+
+    SaveDialog saveDialog;
 
     public String getNodekey() {
         return nodekey;
@@ -167,6 +181,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
     public void setNodekey(String nodekey) {
         this.nodekey = nodekey;
+        Prefer.setPref("NVLIST",NvListRecyclerAdapter.getInstance().getPageIndex(nodekey));
+        Prefer.setPref("NODEKEY",nodekey);
     }
 
     public int getPageNo() {
@@ -179,7 +195,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     }
 
     public void setPageNo(int pageNo){
-
+        if(pageNo==0)
+            pageNo=1;
         this.pageNo=pageNo;
     }
 
@@ -204,6 +221,24 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
     public void setPageIndicator(){
         sendMessage(MsgType.UPDATE_PAGE_NO,getPageNo()+"/"+getPageLastNo());
+        new ASyncTextSocket((Activity) mContext, new ASyncTextSocket.AsyncResponse() {
+            @Override
+            public void processFinish(String msg) {
+                try {
+                    JSONObject jCustInfo = new JSONObject(msg);
+                    JSONArray array = jCustInfo.getJSONArray("List");
+                    if(array.length()==1){
+                        String name = array.getJSONObject(0).getString("CTNAME");
+                        String chartno = array.getJSONObject(0).getString("CTCHARTNO");
+                        sendMessage(MsgType.SET_CUST_NAME,"( "+name + " / "+chartno+" )");
+
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).execute(MakeJSONData.get(MsgType.SEARCH_BY_CHARTNO,getChartNo()).toString());
+
     }
 
     public String getChartNo() {
@@ -330,7 +365,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
             //setChartNo(jData.getString("ND_CHARTNO"));
             //setDB(jData.getString("DB"));
-
+            Log.e("setJData",jData.getString("ND_NODEKEY") + getNodekey());
             if(jData.getString("ND_NODEKEY").equals(getNodekey())){
                 bLoadBackImage = "0";
             }else{
@@ -356,9 +391,15 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
         try{
             //
-
+            imageIndex =1;
             NvChartAsyncTask task = new NvChartAsyncTask(mSpenSurfaceView,mSpenPageDoc,context);
 
+            File nvFile = new File(context.getFilesDir()+File.separator+getDB()+getNodekey()+".jpg");
+            if(nvFile.canRead() ){
+                bLoadBackImage = "0";
+            }else{
+                bLoadBackImage = "1";
+            }
             jData.put("ND_CHARTNO",getChartNo());
             jData.put("DB",getDB());
             jData.put("ND_NODEKEY",getNodekey());
@@ -366,12 +407,15 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             jData.put("BACK_IMAGE",bLoadBackImage);
 
             setPageLastNo(NvListRecyclerAdapter.getInstance().getPageCnt(getNodekey()));
+            Log.w("lastNo","asd"+NvListRecyclerAdapter.getInstance().getPageCnt(getNodekey()));
             NvListRecyclerAdapter.getInstance().setSeletedPosition(NvListRecyclerAdapter.getInstance().getPageIndex(getNodekey()));
             NvListRecyclerAdapter.getInstance().notifyDataSetChanged();
             //loadNvData(jData.toString());
             task.execute(jData.toString());
 
             setPageIndicator();
+
+
         }catch (JSONException je){
             je.printStackTrace();
         }
@@ -384,10 +428,10 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
         //true:다이얼로그 띄움->선택에 따라 진행
         //false:그대로 진행
 
-        //refresh 할 경우-> 차트넘버,db,nodekey,pageno,
+        //refresh_normal 할 경우-> 차트넘버,db,nodekey,pageno,
         if(isChanged()){
 
-            AlertDialog.Builder dialog = new AlertDialog.Builder(mContext);
+            /*AlertDialog.Builder dialog = new AlertDialog.Builder(mContext);
             dialog.setTitle("저장 확인");
             dialog.setMessage("변경된 내용이 있습니다. 저장하시겠습니까?");
             dialog.setPositiveButton("저장", new DialogInterface.OnClickListener() {
@@ -422,7 +466,55 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 }
             });
             dialog.setCancelable(false);
-            dialog.show();
+            //dialog.show();*/
+
+
+            saveDialog = new SaveDialog(mContext, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {   //저장
+                    Log.e("SaveDialog","저장 버튼 클릭");
+                    SaveChartAsync saveChartAsync = new SaveChartAsync(new AsyncAfter() {
+                        @Override
+                        public void afterExcute() {
+                            setChartNo(chartNo_);
+                            setDB(db_);
+                            setNodekey(nodekey_);
+                            setPageNo(pageno_);
+
+                            refreshChart();
+                            saveDialog.dismiss();
+
+                        }
+                    });
+                    saveChartAsync.execute();
+
+
+
+                }
+            }, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {   //저장안함
+                    Log.e("SaveDialog","저장안함 버튼 클릭");
+
+                    setChartNo(chartNo_);
+                    setDB(db_);
+                    setNodekey(nodekey_);
+                    setPageNo(pageno_);
+
+                    refreshChart();
+                    saveDialog.dismiss();
+
+
+                }
+            }, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {   //취소
+                    Log.e("SaveDialog","취소 버튼 클릭");
+                    saveDialog.dismiss();
+                    return;
+                }
+           });
+           saveDialog.show();
         }else{
 
             setChartNo(chartNo_);
@@ -453,14 +545,6 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         Log.i(TAG,"OnActivityCreated call");
-
-        Log.e("colorValue",""+NvConstant.TEXT_BLACK);
-        Log.e("colorValue",""+NvConstant.TEXT_RED);
-        Log.e("colorValue",""+NvConstant.TEXT_BLUE);
-        Log.e("colorValue",""+NvConstant.TEXT_GREEN);
-        Log.e("colorValue",""+NvConstant.TEXT_YELLOW);
-        Log.e("colorValue",""+NvConstant.TEXT_PURPLE);
-        Log.e("colorValue",""+NvConstant.TEXT_PINK);
 
         initView();
 
@@ -722,6 +806,54 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                     Log.e("NvChart", tag + " clicked");
                     v.setSelected(true);
                     mMode = MODE_IMG_OBJ;
+                    PickSetup setup = new PickSetup()
+                            .setTitle("이미지 불러오기")
+                            .setProgressText("수행할 작업 선택")
+                            .setCancelText("닫기")
+                            .setPickTypes(EPickType.GALLERY, EPickType.CAMERA)
+                            .setCameraButtonText("카메라")
+                            .setGalleryButtonText("갤러리")
+                            .setButtonOrientation(LinearLayoutCompat.HORIZONTAL)
+                            .setSystemDialog(false).setMaxSize(1000)
+                            ;
+
+
+                    PickImageDialog.build(setup).setOnPickResult(new IPickResult() {
+                        @Override
+                        public void onPickResult(PickResult pickResult) {
+                            //////////////////////////////////
+                            try {
+                                File fNode = new File(context.getFilesDir()+File.separator+"testImage.jpg");
+                                if(!fNode.canRead()){
+                                    try {
+                                        fNode.createNewFile();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                byte[] backImageData = bitmapToByteArray(pickResult.getBitmap());
+                                FileOutputStream fos = new FileOutputStream(fNode);
+                                fos.write(backImageData);
+                                fos.flush();
+                                fos.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            //////////////////////////////////
+                            SpenObjectImage image = new SpenObjectImage();
+                            Jpeg jpg = new Jpeg(bitmapToByteArray(pickResult.getBitmap()));
+
+                            RectF rectF = new RectF(0,0,mSpenSurfaceView.getWidth()*0.5f,jpg.getHeight()*0.5f);
+                            image.setImage(pickResult.getBitmap());
+                            image.setRect(rectF,true);
+                            String cImageIndex = String.format("%03d",imageIndex);
+                            image.setText("new:"+cImageIndex);
+                            mSpenPageDoc.appendObject(image);
+                            mSpenSurfaceView.update();
+
+                        }
+                    }).show((FragmentActivity) mContext);
 
                 }
                 if (TOOL_NAME.STROKE.toString().equals(tag)) {
@@ -774,7 +906,6 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             bLoadBackImage ="1";
             confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),getPageLastNo());
 
-            refreshChart();
         }
 
 
@@ -796,20 +927,79 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
         }
         if(tag.equals("new")){
             Log.w("NvChart","click new");
-            setPageLastNo(getPageLastNo()+1);
-            setPageNo(getPageLastNo());
 
-            refreshChart();
+            AlertDialog.Builder newPageDialog = new AlertDialog.Builder(mContext);
+            newPageDialog.setTitle("새로운 페이지");
+            newPageDialog.setMessage("새로운 페이지를 추가하시겠습니까?");
+            newPageDialog.setPositiveButton("추가", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    try {
+                        addNewPage();
+                        ASyncTextSocket socket = new ASyncTextSocket((Activity) mContext );
+                        String rcvMsg = socket.execute(MakeJSONData.get(MsgType.LOAD_NVLIST,getDB(),getChartNo()).toString()).get();
+                        JSONObject rcvData = new JSONObject(rcvMsg);
+                        NvListRecyclerAdapter.getInstance(rcvMsg);
+                        NvListRecyclerAdapter.getInstance().notifyDataSetChanged();
+                        /*JSONArray list = rcvData.getJSONArray("List");
+                        for(int i = 0; i<list.length();i++){
+                            Log.w("addNewPage",list.getJSONObject(i).getString("NS_NODEKEY")+" , " + getNodekey());
+
+                            if(list.getJSONObject(i).getString("NS_NODEKEY").equals(getNodekey())){
+                                Log.w("addNewPage",list.getJSONObject(i).getString("ND_PAGE_CNT"));
+                                setPageLastNo(Integer.parseInt(list.getJSONObject(i).getString("ND_PAGE_CNT")));
+                            }
+                        }*/
+                        //setPageNo(NvListRecyclerAdapter.getInstance().getPageCnt(getNodekey()));
+                        confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),NvListRecyclerAdapter.getInstance().getPageCnt(getNodekey()));
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            });
+            newPageDialog.setNegativeButton("취소", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    return;
+                }
+            });
+            newPageDialog.show();
+            //setPageNo(getPageLastNo());
+
         }
         if(tag.equals("save")){
             Log.w("NvChart","click save");
 
-            saveChart();
-            //refreshChart();
-
+            SaveChartAsync saveChartAsync = new SaveChartAsync();
+            saveChartAsync.execute();
         }
         setPenInfo();
         mSpenSurfaceView.update();
+
+    }
+    private void addNewPage(){
+        try {
+            JSONObject sendData = MakeJSONData.get(MsgType.SAVE_NVCHART,getDB(),getChartNo(),getNodekey(),String.valueOf(getPageLastNo()+1));
+            String cSendData = sendData.toString(1).replace("\\/","/")+"\n";
+            byte[] bSendData = cSendData.getBytes("EUC-KR");
+            bSendData = appendByte(bSendData,"---AndcomData_END---".getBytes("EUC-KR"));
+            ASyncImageSocket socket = new ASyncImageSocket((Activity)mContext,Prefer.getPrefString("key_ip",""),Integer.parseInt(Prefer.getPrefString("key_port", "80")));
+            socket.execute(bSendData).get();
+            sendMessage(MsgType.LOAD_DBLIST,"");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }catch (UnsupportedEncodingException uee){
+            uee.printStackTrace();
+        }catch (InterruptedException ie){
+            ie.printStackTrace();
+        }catch (ExecutionException ee){
+            ee.printStackTrace();
+        }
 
     }
     private void setPenInfo(){
@@ -909,6 +1099,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
         }
         ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
         boolean isChange=objects.size() != objectCnt;
+        Log.w("saveChart","size="+objects.size());
+
         for(SpenObjectBase objectBase : objects){
             if(objectBase.isChanged()){
                 isChange=true;
@@ -917,10 +1109,228 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
         }
         return isChange;
     }
+    interface AsyncAfter {
+        void afterExcute();
+    }
+    private class SaveChartAsync extends AsyncTask<Void,String,byte[]> implements AsyncAfter{
+        AsyncAfter delegate=null;
+        SaveChartAsync(){}
+        SaveChartAsync(AsyncAfter delegate){
+            this.delegate = delegate;
+        }
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            LoadingProgress.getInstance().progressON((Activity) context,"변경 사항을 저장 합니다.");
+        }
+        @Override
+        protected byte[] doInBackground(Void... voids) {
+            byte[] bSendData = new byte[0];
+            try {
 
-    @SuppressLint("StaticFieldLeak")
+                JSONObject sendData = MakeJSONData.get(MsgType.SAVE_NVCHART,getDB(),getChartNo(),getNodekey(),String.valueOf(getPageNo()));
+                String cSendData = new String();
+
+                JSONArray arrStrokes = new JSONArray();
+                JSONArray arrTextboxes = new JSONArray();
+                JSONArray arrImage = new JSONArray();
+                ArrayList<Bitmap> bitmaps = new ArrayList<>();
+                int imageIndex = 1;
+                ArrayList<SpenObjectBase> objects = mSpenPageDoc.getObjectList();
+
+
+                if(!isChanged()){
+                    //Toasty.info(context,"변경 사항이 없습니다.").show();
+                    Log.w("saveChart","저장할 내용이 없음");
+
+                    sendMessageMe(MsgType.TOAST_MSG,"변경 사항이 없습니다.");
+                    return null;
+                }
+                for(SpenObjectBase objectBase : objects){
+
+                    if(objectBase.getType()==SpenPageDoc.FIND_TYPE_STROKE){
+                        SpenObjectStroke stroke = (SpenObjectStroke)objectBase;
+                        String cStroke = new String();
+                        String penMode = stroke.getPenName().contains("InkPen") ? "1" : "2";
+                        String penSize = new String();
+                        String penColor = new String();
+                        if(penMode.equals("1")){
+                            penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
+                            penColor= NvConstant.getPenColorCode(stroke.getColor());
+
+                            Log.w("pen Color","color "+stroke.getColor() + " ->" + penColor);
+
+                        }else{
+                            penSize = NvConstant.getPenSizeCode(penMode,stroke.getPenSize());
+                            penColor= NvConstant.getPenColorCode(stroke.getColor());
+                        }
+                        cStroke = getDecToHex(penMode+penSize,2)+getDecToHex(penColor,2);       //4자리 헤더 생성
+
+
+                        float[] pointsX = stroke.getXPoints();
+                        float[] pointsY = stroke.getYPoints();
+                        Log.e("saveChart","stroke");
+
+                        for(int i =0 ; i < pointsX.length ; i++){
+                            float tempX = pointsX[i]*NvData.ScaleWidth/jpg.getWidth()+NvData.ScaleLeft;
+                            float tempY = pointsY[i]*NvData.ScaleHeight/jpg.getHeight()+NvData.ScaleTop;
+                            Log.d("saveChart","X="+tempX+", Y="+tempY);
+                            cStroke +=getDecToHex(String.valueOf((long)tempX),4);
+                            cStroke +=getDecToHex(String.valueOf((long)tempY),4);
+                        }
+                        JSONObject jStroke = new JSONObject();
+                        jStroke.put("BYTE",cStroke);
+                        arrStrokes.put(jStroke);
+
+                    }
+                    if(objectBase.getType()==SpenPageDoc.FIND_TYPE_TEXT_BOX && objectBase.isSelectable() ){
+                        SpenObjectTextBox textBox = (SpenObjectTextBox) objectBase;
+                        JSONObject jTextBox = new JSONObject();
+                        jTextBox.put("COLOR",NvConstant.getTextColorCode(textBox.getTextColor()));
+                        RectF rect = textBox.getRect();
+                        String desc = textBox.getText();
+                        int count=new Integer(1);
+                        int i=new Integer(0);
+                        if(desc.equals("")){
+                            break;
+                        }
+                        while((i=desc.indexOf("\n",i+1))!=-1){
+                            count++;
+                        }
+
+                        rect.bottom = (41+nvData.ScaleHeight/69*count);
+
+                        jTextBox.put("POSITION",nvData.getOriginPosition(rect,NvConstant.TEXT_OBJ));
+
+                        jTextBox.put("DESC",textBox.getText().replace("\n","\r\n"));
+
+                        arrTextboxes.put(jTextBox);
+                    }
+                    if(objectBase.getType()==SpenObjectBase.TYPE_IMAGE ){
+
+                        SpenObjectImage imageObject = (SpenObjectImage) objectBase;
+                        JSONObject jImage = new JSONObject();
+                        RectF rect = imageObject.getRect();
+                        jImage.put("POSITION",nvData.getOriginPosition(rect,NvConstant.IMAGE_OBJ));
+                        String cImageIndex = String.format("%03d",imageIndex);
+                        jImage.put("INDEX",cImageIndex);
+                        imageIndex++;
+                        bitmaps.add(imageObject.getImage());
+                        arrImage.put(jImage);
+
+                    }
+                }
+                sendData.put("PenData",arrStrokes);
+                sendData.put("TextBox",arrTextboxes);
+                sendData.put("Image",arrImage);
+
+                JSONArray image = sendData.getJSONArray("Image");
+                cSendData = sendData.toString(1).replace("\\/","/")+"\n";
+
+                bSendData = new byte[0];
+                bSendData = cSendData.getBytes("EUC-KR");
+                //bSendData = appendByte(bSendData,nvData.tempImage);   //받았던거 그대로 보내기
+                //Log.e("temp Length","길이 "+nvData.tempImage.length);
+                for(int i=0;i<bitmaps.size();i++){
+                    Log.e("Index","index = "+ i);
+                    String index = image.getJSONObject(i).getString("INDEX");
+                    bSendData = appendByte(bSendData,("<---AndcomData_Image"+index+"---\r\n").getBytes("EUC-KR")) ;
+
+                    bSendData = appendByte(bSendData,bitmapToByteArray(bitmaps.get(i)));
+                    ////////////////////////
+                    /*try {
+                        File fNode = new File(context.getFilesDir()+File.separator+"testImage.jpg");
+                        if(!fNode.canRead()){
+                            try {
+                                fNode.createNewFile();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        byte[] backImageData = bitmapToByteArray(bitmaps.get(i));
+                        FileOutputStream fos = new FileOutputStream(fNode);
+                        fos.write(backImageData);
+                        fos.flush();
+                        fos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+*/
+                    ////////////////////////
+                    //bSendData = appendByte(bSendData,new byte[]{1});
+                    bSendData = appendByte(bSendData,"\r\n".getBytes("EUC-KR"));
+
+                    bSendData = appendByte(bSendData,("---AndcomData_Image"+index+"--->\r\n\r\n").getBytes("EUC-KR"));
+                }
+                bSendData = appendByte(bSendData,"---AndcomData_END---".getBytes("EUC-KR"));
+
+                cSendData = new String(bSendData);
+                int maxLogSize = 1000;
+                for(int i = 0; i <= cSendData.length() / maxLogSize; i++) {
+                    int start = i * maxLogSize;
+                    int end = (i+1) * maxLogSize;
+                    end = end > cSendData.length() ? cSendData.length() : end;
+                    Log.v("SendData", cSendData.substring(start, end));
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } finally {
+            }
+            return bSendData;
+        }
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            //LoadingProgress.getInstance().progressSET(values[0]);
+        }
+        @Override
+        protected void onPostExecute(byte[] bData) {
+            super.onPostExecute(bData);
+            ASyncImageSocket socket = new ASyncImageSocket((Activity) mContext, Prefer.getPrefString("key_ip", ""), Integer.parseInt(Prefer.getPrefString("key_port", "80")), new ASyncImageSocket.AsyncResponse() {
+                @Override
+                public void processFinish(String response) {
+                    if(response.contains("1")){
+
+                        //Toasty.info(context,"저장 성공").show();
+                        sendMessageMe(MsgType.TOAST_MSG,"저장 성공");
+                        mSpenPageDoc.clearChangedFlag();
+                        objectCnt = mSpenPageDoc.getObjectCount(false);
+                        if(delegate!=null){
+                            delegate.afterExcute();
+
+                        }
+                    }else{
+                        JSONObject jResult = null;
+                        try {
+                            jResult = new JSONObject(response);
+                            //Toasty.error(context,"저장 실패. 다시 시도해주세요."+"\r\n원인:"+jResult.getString("Msg")).show();
+                            sendMessageMe(MsgType.TOAST_MSG,"저장 실패. 다시 시도해주세요."+"\r\n원인:"+jResult.getString("Msg"));
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+
+                }
+            });
+            if(bData !=null){
+                socket.execute(bData);
+
+            }else{
+                LoadingProgress.getInstance().progressOFF();
+            }
+        }
+        @Override
+        public void afterExcute(){
+
+        }
+    }
+    /*@SuppressLint("StaticFieldLeak")
     private void saveChart(){
-        new AsyncTask<Void,String,byte[]>(){
+        AsyncTask saveChart = new AsyncTask<Void,String,byte[]>(){
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
@@ -944,6 +1354,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
                     if(!isChanged()){
                         //Toasty.info(context,"변경 사항이 없습니다.").show();
+                        Log.w("saveChart","저장할 내용이 없음");
+
                         sendMessageMe(MsgType.TOAST_MSG,"변경 사항이 없습니다.");
                         return null;
                     }
@@ -1016,9 +1428,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                             String index=String.format("%03d",++imageIndex);
                             Log.e("Imege","Index "+index);
 
-                                /*while(index.length()<3){
+                                *//*while(index.length()<3){
                                     index = "0"+index;
-                                }*/
+                                }*//*
                             jImage.put("INDEX",index);
                             bitmaps.add(imageObject.getImage());
                             arrImage.put(jImage);
@@ -1089,6 +1501,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                                 e.printStackTrace();
                             }
                         }
+
+
                     }
                 });
                 if(bData !=null){
@@ -1098,12 +1512,12 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                     LoadingProgress.getInstance().progressOFF();
                 }
             }
-        }.execute();
+        };
 
-    }
-    public byte[] bitmapToByteArray( Bitmap $bitmap ) {
+    }*/
+    public byte[] bitmapToByteArray( Bitmap bitmap ) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream() ;
-        $bitmap.compress( Bitmap.CompressFormat.JPEG, 100, stream) ;
+        bitmap.compress( Bitmap.CompressFormat.JPEG, 100, stream) ;
         byte[] byteArray = stream.toByteArray() ;
         return byteArray ;
     }
@@ -1351,10 +1765,12 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         NvListRecyclerAdapter nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance();
                         int nodeKey = nvListRecyclerAdapter.getSeletedPosition();
                         if(nodeKey<nvListRecyclerAdapter.getItemCount()){
-                            setNodekey(nvListRecyclerAdapter.getNodeKey(nodeKey+1));
-                            setPageNo(nvListRecyclerAdapter.getPageCnt(nodeKey+1));
-                            bLoadBackImage="1";
-                            refreshChart();
+                            //setNodekey(nvListRecyclerAdapter.getNodeKey(nodeKey+1));
+                            //setPageNo(nvListRecyclerAdapter.getPageCnt(nodeKey+1));
+                            //bLoadBackImage="1";
+                            //refreshChart();
+
+                            confirmSaveBeforeRefresh(getChartNo(),getDB(),nvListRecyclerAdapter.getNodeKey(nodeKey+1),Integer.parseInt(nvListRecyclerAdapter.getPageCnt(nodeKey+1)));
                         }else{
 
                         }
@@ -1369,10 +1785,13 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         NvListRecyclerAdapter nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance();
                         int nodeKey = nvListRecyclerAdapter.getSeletedPosition();
                         if(nodeKey!=0){
-                            setNodekey(nvListRecyclerAdapter.getNodeKey(nodeKey-1));
-                            setPageNo(nvListRecyclerAdapter.getPageCnt(nodeKey-1));
-                            bLoadBackImage="1";
-                            refreshChart();
+                            //setNodekey(nvListRecyclerAdapter.getNodeKey(nodeKey-1));
+                            //setPageNo(nvListRecyclerAdapter.getPageCnt(nodeKey-1));
+                            //bLoadBackImage="1";
+                            //refreshChart();
+
+                            confirmSaveBeforeRefresh(getChartNo(),getDB(),nvListRecyclerAdapter.getNodeKey(nodeKey-1),Integer.parseInt(nvListRecyclerAdapter.getPageCnt(nodeKey-1)));
+
                         }else{
 
                         }
@@ -1546,7 +1965,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 "\n화면에 추가 시간 : "+String.format("%.4f",update) + "(초)" +
                 "\n전체 소요 시간 : "+String.format("%.4f",(end-start)/1000.0000) + "(초)" ;
 
-        Toast.makeText(mContext,toast,Toast.LENGTH_LONG).show();
+        //Toast.makeText(mContext,toast,Toast.LENGTH_LONG).show();
         Log.e("TimeDebug",toast);
         mSpenPageDoc.clearHistory();
         LoadingProgress.getInstance().progressOFF();
@@ -1559,14 +1978,18 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             if(i==0){
                 //이전 페이지
                 if(getPageNo()>1){
-                    setPageNo(getPageNo()-1);
-                    refreshChart();
+                    //setPageNo(getPageNo()-1);
+                    //refreshChart();
+                    confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),getPageNo()-1);
                 }
             }
             if(i==1){
                 if(getPageNo()<getPageLastNo()){
-                    setPageNo(getPageNo()+1);
-                    refreshChart();
+                    //setPageNo(getPageNo()+1);
+                    //refreshChart();
+
+                    confirmSaveBeforeRefresh(getChartNo(),getDB(),getNodekey(),getPageNo()+1);
+
                 }
             }
             return false;
@@ -1593,6 +2016,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             return false;
         }
     };
+
+
+
 
     private final SpenTouchListener mPenTouchListener = new SpenTouchListener() {
 
@@ -1622,6 +2048,8 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         float y = canvasPos.y;
                         float height,width;
                         int point = bitmap.getPixel((int)x,(int)y);
+
+                        float textBoxHeight = 24.0f;
 
                         Log.e("touchEvent",x+", "+y+" ; point "+point);
                         while(x>0){
@@ -1654,7 +2082,31 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                             y=y-1;
 
                         }
-                        y=y+10;
+                        float tempY = (int)canvasPos.y;
+                        boolean fixedBox = false;
+
+                        while(tempY<mSpenPageDoc.getHeight() && tempY-y <textBoxHeight*2){
+                            if(point != bitmap.getPixel((int)canvasPos.x,(int)tempY)){
+                                //Log.e("touchEvent",x+", "+y+" ; point "+point + bitmap.getPixel((int)x,(int)y));
+                                fixedBox = true;
+                                break;
+                            }
+                            tempY=tempY+1;
+                        }
+                        Log.w("textBoxY","textBoxHeight = "+ textBoxHeight +", drawnRect = "+(textObj.getRect().bottom-textObj.getRect().top)+ ", tempY-y = "+(tempY-y)+", canvasHeight = "+ mSpenPageDoc.getHeight());
+
+                        Log.w("textBoxY","fixedBox = "+ fixedBox);
+                        if(fixedBox){
+                            //y= y+(tempY-y)/2 - textBoxHeight/2;
+                            y= y+(tempY-y)/2 - (textObj.getRect().bottom-textObj.getRect().top)/2;
+                        }else{
+                            if(canvasPos.y-textBoxHeight/2<y){
+                                y = y+10;
+                            }else{
+                                y= canvasPos.y-textBoxHeight/2;
+
+                            }
+                        }
                         /*
                         float tempY=canvasPos.y;
 
@@ -1668,7 +2120,6 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         Log.e("touchEvent","x="+x+", y="+y+", width="+width+", height="+height);
                         */
                         textObj.setMargin(0,0,0,0);
-                        float textBoxHeight = getTextBoxDefaultHeight(textObj);
 
                         if ((y + textBoxHeight) > mSpenPageDoc.getHeight()) {
                             y = mSpenPageDoc.getHeight() - textBoxHeight;
@@ -1680,12 +2131,30 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         textObj.setRotatable(false);
                         textObj.setFontSize(18);
                         textObj.setTextColor(Prefer.getPrefInt("TextColor",0));
-                        Log.d("textObj",textObj.getRect().toString());
 
 
                         mSpenPageDoc.appendObject(textObj);
                         mSpenPageDoc.selectObject(textObj);
                         mSpenSurfaceView.update();
+                        Log.d("textObj",textObj.getDrawnRect().toString());
+
+                        rect = textObj.getDrawnRect();
+                        float fixedY = rect.top- (textObj.getDrawnRect().bottom-textObj.getDrawnRect().top)/2;
+                        if(fixedY<y && !fixedBox){
+                            fixedY = y+3;
+                        }else{
+                            if(fixedBox){
+                                //fixedY = rect.top;
+                            }else{
+                                fixedY= canvasPos.y-textBoxHeight/2;
+
+                            }
+
+                        }
+                        rect.top = fixedY;
+                        textObj.setRect(rect,true);
+                        mSpenSurfaceView.update();
+
                     }
                 }
             }
@@ -1926,6 +2395,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             mSpenNoteDoc = null;
         }
 
+
     }
 
     public String getName(){
@@ -1995,14 +2465,28 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             */
             switch (msg.what){
                 case MsgType.REFRESH_NVCHART :
-                    setJData(msg.obj.toString());
+                    //setJData(msg.obj.toString());
+                    try{
+                        jData = new JSONObject(msg.obj.toString());
+
+                        confirmSaveBeforeRefresh(jData.getString("ND_CHARTNO"),
+                                                    jData.getString("DB"),
+                                                    jData.getString("ND_NODEKEY"),
+                                                    Integer.parseInt(jData.getString("ND_PAGENO")));
+
+
+                    }catch (JSONException je){
+                        je.printStackTrace();
+                    }
                     break;
 
                 case MsgType.NVCHART_RELEASE :
 
                     ImageView background = (ImageView)getView().findViewById(R.id.backgroundImage);
                     if((boolean)msg.obj){
-                        background.setVisibility(View.VISIBLE);release();
+                        background.setVisibility(View.VISIBLE);
+                        NvChart.this.sendMessage(MsgType.CLOSE_CHART,"");
+                        release();
                     }else{
                         //initView();
                         background.setVisibility(View.GONE);
@@ -2016,32 +2500,39 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                     message.obj=true;
 
                     if(isChanged()){
-                        AlertDialog.Builder dialog = new AlertDialog.Builder(mContext);
-                        dialog.setTitle("저장 확인");
-                        dialog.setMessage("변경된 내용이 있습니다. 저장하시겠습니까?");
-                        dialog.setPositiveButton("저장", new DialogInterface.OnClickListener() {
+
+                        saveDialog = new SaveDialog(mContext, new View.OnClickListener() {
                             @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                saveChart();
-                                //handler.sendMessage(message);
+                            public void onClick(View v) {   //저장
+                                SaveChartAsync saveChartAsync = new SaveChartAsync(new AsyncAfter() {
+                                    @Override
+                                    public void afterExcute() {
+                                        handler.sendMessage(message);
+
+                                    }
+                                });
+                                saveChartAsync.execute();
+
+                                saveDialog.dismiss();
 
                             }
-                        });
-                        dialog.setNeutralButton("저장 안함", new DialogInterface.OnClickListener() {
+                        }, new View.OnClickListener() {
                             @Override
-                            public void onClick(DialogInterface dialog, int which) {
+                            public void onClick(View v) {   //저장안함
                                 handler.sendMessage(message);
 
+                                saveDialog.dismiss();
+
                             }
-                        });
-                        dialog.setNegativeButton("취소", new DialogInterface.OnClickListener() {
+                        }, new View.OnClickListener() {
                             @Override
-                            public void onClick(DialogInterface dialog, int which) {
+                            public void onClick(View v) {   //취소
+                                saveDialog.dismiss();
                                 return;
                             }
                         });
-                        dialog.setCancelable(false);
-                        dialog.show();
+
+                        saveDialog.show();
                     }else{
 
 
@@ -2102,6 +2593,16 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
         @Override
         protected String doInBackground(String... strings) {
             Log.e("NvChartTask","doInBackground "+strings[0]);
+            final String[] cDbInfo= new String[2];
+
+            try {
+                JSONObject temp = new JSONObject(strings[0]);
+                cDbInfo[0] = temp.getString("DB");
+                cDbInfo[1] = temp.getString("ND_NODEKEY");
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
             String ip = Prefer.getPrefString("key_ip","");
             int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
             ASyncSocket socket = new ASyncSocket((Activity) _context, ip, port, new ASyncSocket.AsyncResponse() {
@@ -2112,7 +2613,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         LoadingProgress.getInstance().progressOFF();
                         return;
                     }
-                    nvData = new NvData(_context,output);
+                    nvData = new NvData(_context,output,cDbInfo);
                     loadNvData(nvData);
                 }
             });

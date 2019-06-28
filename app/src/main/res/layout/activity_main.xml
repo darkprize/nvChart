@@ -21,10 +21,32 @@
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/nav_header_main">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:layout_marginTop="@dimen/nav_header_height2"
+            android:id="@+id/nvBottom">
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@android:color/transparent"
+            android:id="@+id/cardViewCustList"
+            app:cardElevation="0dp">
+                <androidx.recyclerview.widget.RecyclerView
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp"
+                    android:background="@android:color/transparent"
+                    android:id="@+id/recyclerCust"
+                    tools:listitem="@layout/cust_item">
+
+                </androidx.recyclerview.widget.RecyclerView>
+        </androidx.cardview.widget.CardView>
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="600dp"
             android:id="@+id/cardViewNvList">
             <LinearLayout
                 android:layout_width="match_parent"
@@ -110,6 +132,8 @@
                 />
 
         </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
     </com.google.android.material.navigation.NavigationView>
 
 </androidx.drawerlayout.widget.DrawerLayout>

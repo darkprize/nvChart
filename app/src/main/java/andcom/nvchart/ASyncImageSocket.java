@@ -211,7 +211,8 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
         /*loadingProgress.progressOFF();*/
-        delegate.processFinish(s);
+        if(delegate!=null)
+            delegate.processFinish(s);
         LoadingProgress.getInstance().progressOFF();
 
     }

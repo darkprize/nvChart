@@ -75,6 +75,7 @@
             android:paddingRight="10dp"
             android:paddingBottom="8dp"
             android:id="@+id/layoutUndoRedo"
+            android:tag="none"
             android:clickable="false">
 
             <ImageButton
@@ -101,6 +102,7 @@
             style="@style/TopToolButton"
             android:background="@android:color/transparent"
             android:src="@drawable/button_search"
+            android:tag="search"
             />
     </LinearLayout>
     <View

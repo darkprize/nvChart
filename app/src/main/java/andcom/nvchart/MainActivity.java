@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.AnimationDrawable;
 import android.inputmethodservice.KeyboardView;
@@ -16,6 +18,7 @@ import android.os.Message;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -50,6 +53,7 @@ import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.json.JSONObject;
+import org.jsoup.nodes.Node;
 
 import java.net.URI;
 import java.text.SimpleDateFormat;
@@ -61,7 +65,9 @@ import java.util.Locale;
 import andcom.nvchart.TableView.MainFrameTable;
 import andcom.nvchart.TableView.Order.OrderTable;
 import andcom.nvchart.TableView.Wait.WaitTable;
+import andcom.nvchart.TableView.WaitingBoardDialog;
 import andcom.nvchart.nvChart.NvChart;
+import andcom.nvchart.util.ItemClickSupport;
 import andcom.nvchart.util.LoadingProgress;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -77,6 +83,9 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
+
+import andcom.nvchart.util.NodeRefreshDialog;
+import andcom.nvchart.util.NvChartDB;
 import es.dmoral.toasty.Toasty;
 import kotlin.Function;
 import kotlin.jvm.functions.Function1;
@@ -95,26 +104,18 @@ public class MainActivity extends AppCompatActivity
 
     FrameLayout waitFrame, frmMain;
     Button btnSearch;
-    Fragment fragment, mainFragment;
+    Fragment fragment;
     FragmentManager fm;
     FragmentTransaction ft;
     NavigationView navigationView;
     DrawerLayout drawer;
     RelativeLayout bottom_sheet;
-    BottomSheetBehavior bottomSheetBehavior;
+    //BottomSheetBehavior bottomSheetBehavior;
 
-    Fragment bottomFragment;
-    TabLayout tabLayout;
-    ViewPager viewPager;
-    PagerAdapter pagerAdapter;
-
-    OrderTable orderTable;
-    WaitTable waitTable;
 
     TextInputEditText editName,editChartNo;
 
-    TextView pageIndicator,dateView;
-    static DatePickerDialog datePickerDialog;
+    TextView pageIndicator,titleCustInfo;
 
     public static RecyclerView recyclerViewNvList;
     public static NvListRecyclerAdapter nvListRecyclerAdapter;
@@ -158,21 +159,26 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
 /*
-
                 int state = bottomSheetBehavior.getState();
                 if (state == BottomSheetBehavior.STATE_HIDDEN || state == BottomSheetBehavior.STATE_COLLAPSED)
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 if (state == BottomSheetBehavior.STATE_EXPANDED)
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 */
-
-
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        FragmentManager fm = getSupportFragmentManager();
+                        WaitingBoardDialog waitingBoardDialog = new WaitingBoardDialog();
+                        waitingBoardDialog.show(fm,"");
+                    }
+                }).start();
 
 
             }
         });
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -185,7 +191,7 @@ public class MainActivity extends AppCompatActivity
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
             }
-        });
+        });*/
 
 
         //gesturedetector = new GestureDetector(new MyGestureListener());
@@ -193,20 +199,6 @@ public class MainActivity extends AppCompatActivity
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
 
         bottom_sheet = (RelativeLayout) findViewById(R.id.bottom_sheet);
-        bottomSheetBehavior = BottomSheetBehavior.from(bottom_sheet);
-
-
-        bottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View view, int i) {
-
-            }
-
-            @Override
-            public void onSlide(@NonNull View view, float v) {
-
-            }
-        });
         final LinearLayout bottom_tool_bar = (LinearLayout) findViewById(R.id.bottom_tool_bar);
 
         bottom_sheet.setOnDragListener(new View.OnDragListener() {
@@ -235,7 +227,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onDrawerClosed(View drawerView) {
                 super.onDrawerClosed(drawerView);
-
+                closeKeyBoard();
             }
 
             @Override
@@ -296,6 +288,20 @@ public class MainActivity extends AppCompatActivity
                     case MsgType.UPDATE_PAGE_NO :
                         pageIndicator.setText(msg.obj.toString());
                         break;
+                        case MsgType.LOAD_DBLIST:
+                            loadDBList();
+                            break;
+                    case MsgType.SET_CUST_NAME :
+                        String custInfo = msg.obj.toString();
+                        titleCustInfo.setText(custInfo);
+                        titleCustInfo.setVisibility(View.VISIBLE);
+                        break;
+
+                    case MsgType.CLOSE_CHART :
+
+                        pageIndicator.setText("0/0");
+                        titleCustInfo.setVisibility(View.INVISIBLE);
+                        break;
                 }
             }
         };
@@ -303,27 +309,20 @@ public class MainActivity extends AppCompatActivity
         handler1 = new Handler(Looper.getMainLooper()){
             @Override
             public void handleMessage(Message msg) {
-                recyclerViewNvList.addOnItemTouchListener(new RecyclerTouchListener(context, recyclerViewNvList, new RecyclerTouchListener.ClickListener() {
+
+
+                ItemClickSupport.addTo(recyclerViewNvList).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
                     @Override
-                    public void onClick(View view, int position) {
+                    public void onItemClicked(RecyclerView recyclerView, int position, View v) {
                         if(position<0)
                             return;
                         Prefer.setPref("NVLIST",position);
 
-                        //setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(position),nvListRecyclerAdapter.getPageCnt(position));
-                /*for(int i=0;i<recyclerViewNvList.getChildCount();i++)
-                    recyclerViewNvList.findViewHolderForAdapterPosition(i).itemView.setSelected(false);
-                view.setSelected(true);*/
                         nvListRecyclerAdapter.setSeletedPosition(position);
 
                         load_NvChart(selectChart);
                     }
-
-                    @Override
-                    public void onLongClick(View view, int position) {
-
-                    }
-                }));
+                });
 
                 recyclerViewNvList.setAdapter(nvListRecyclerAdapter);
                 recyclerViewNvList.setLayoutManager(new LinearLayoutManager(context));
@@ -332,21 +331,12 @@ public class MainActivity extends AppCompatActivity
 
         initView();
         loadDBList();
-
     }
 
     private void initView() {
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-        navigationView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                CardView cardViewNvList = (CardView)findViewById(R.id.cardViewNvList);
-                CardView.LayoutParams params = (CardView.LayoutParams)cardViewNvList.getLayoutParams();
-                params.topMargin = navigationView.getHeaderView(0).getHeight();
-                cardViewNvList.setLayoutParams(params);
-            }
-        });
+
 
         View headerView = navigationView.getHeaderView(0);
         //headerView.getBackground().setColorFilter(0x80000000,PorterDuff.Mode.MULTIPLY);
@@ -354,7 +344,6 @@ public class MainActivity extends AppCompatActivity
 
         frmMain = (FrameLayout) findViewById(R.id.frmMain);
 
-        waitFrame = (FrameLayout) navigationView.getHeaderView(0).findViewById(R.id.waitFrame_Header);
         btnSearch = (Button) navigationView.getHeaderView(0).findViewById(R.id.btnSearch);
 
         class keyboardActionListener implements TextView.OnEditorActionListener {
@@ -375,14 +364,11 @@ public class MainActivity extends AppCompatActivity
 
 
         pageIndicator = (TextView)findViewById(R.id.pageIndicator);
-        dateView = findViewById(R.id.date);
-        long now = System.currentTimeMillis();
-        Date date = new Date(now);
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (E)");
-        dateView.setText(sdf.format(date));
+
+        titleCustInfo = findViewById(R.id.custInfoText);
 
 
-        mainFragment = new MainFrameTable();
+        //mainFragment = new MainFrameTable();
         fragment = new NvChart();
         fm = getSupportFragmentManager();
         ft = fm.beginTransaction();
@@ -443,43 +429,15 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-
-        tabLayout = (TabLayout) findViewById(R.id.tab);
-        tabLayout.addTab(tabLayout.newTab().setText("대기현황"));
-        tabLayout.addTab(tabLayout.newTab().setText("진료현황"));
-
-        viewPager = (ViewPager) findViewById(R.id.viewpager);
-        waitTable = new WaitTable();
-        orderTable = new OrderTable();
-        pagerAdapter = new PagerAdapter(getSupportFragmentManager(), tabLayout.getTabCount(), waitTable, orderTable);
-        viewPager.setAdapter(pagerAdapter);
-        viewPager.addOnPageChangeListener(new TabLayout.TabLayoutOnPageChangeListener(tabLayout));
-        tabLayout.setOnTabSelectedListener(new TabLayout.BaseOnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                viewPager.setCurrentItem(tab.getPosition());
-
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-
-            }
-        });
-        orderTable = (OrderTable) pagerAdapter.getItem(1);
-        waitTable = (WaitTable) pagerAdapter.getItem(0);
-
-        datePickerDialog = new DatePickerDialog(this);
+    }
+    private void initSqlite(){
 
     }
-
     public void onClicked(View v){
-
+        if("search".equals(v.getTag().toString())){
+            DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+            drawer.openDrawer(Gravity.LEFT);
+        }
         if(fragment instanceof NvChart){
             ((NvChart) fragment).onClicked(v);
         }else{
@@ -491,7 +449,7 @@ public class MainActivity extends AppCompatActivity
     private void loadDBList(){
         final ImageView loading_nvlist = (ImageView)findViewById(R.id.loading_nvlist);
 
-        new AsyncTask<Void,String,Void>(){
+        new AsyncTask<Void,String,Integer>(){
             @Override
             protected void onPreExecute() {
                 //LoadingProgress.getInstance().progressON((Activity)context,"불러오는중");
@@ -503,7 +461,7 @@ public class MainActivity extends AppCompatActivity
             }
 
             @Override
-            protected Void doInBackground(Void... voids) {
+            protected Integer doInBackground(Void... voids) {
                 //LoadingProgress.getInstance().progressOFF();
                 JSONObject msg = MakeJSONData.get(MsgType.LOAD_DBLIST);
                 JSONObject rcvData=SendData.getMessage(context,msg.toString());
@@ -514,44 +472,10 @@ public class MainActivity extends AppCompatActivity
 
                 }*/
 
-                LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
-                ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
-                ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
-                ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
-
-                db1.setOnClickListener(new dbBtnOnClickListener());
-                db2.setOnClickListener(new dbBtnOnClickListener());
-                db3.setOnClickListener(new dbBtnOnClickListener());
                 try{
                     int db = rcvData.getInt("DB");
-                    if(db>100){ //3개
-                        ldb.setVisibility(View.VISIBLE);
-                        db3.setVisibility(View.VISIBLE);
-                        dbBtnSelection(db1);
-                    }else if(db>10){    //2개
-                        ldb.setVisibility(View.VISIBLE);
-                        if(db%10 == 3){
-                            db3.setVisibility(View.VISIBLE);
-                        }else{
 
-                        }
-
-
-                    }else{  //1개
-
-                    }
-                    String sDB = Prefer.getPrefString("DB","1");
-                    switch (sDB){
-                        case "1" :
-                            dbBtnSelection(db1);
-                            break;
-                        case "2" :
-                            dbBtnSelection(db2);
-                            break;
-                        case "3" :
-                            dbBtnSelection(db3);
-                            break;
-                    }
+                    return db;
 
                 }catch(JSONException jje){
                     jje.printStackTrace();
@@ -561,9 +485,50 @@ public class MainActivity extends AppCompatActivity
                 return null;
             }
             @Override
-            protected void onPostExecute(Void aVoid) {
-                super.onPostExecute(aVoid);
+            protected void onPostExecute(Integer db) {
+                super.onPostExecute(db);
+                if(db==null){
+                    Toasty.error(context,"서버에 접속 할 수 없습니다.").show();
 
+                    return;
+                }
+                LinearLayout ldb = (LinearLayout)findViewById(R.id.layoutDB);
+                ImageButton db1 = (ImageButton)findViewById(R.id.btnDB1);
+                ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
+                ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
+
+                db1.setOnClickListener(new dbBtnOnClickListener());
+                db2.setOnClickListener(new dbBtnOnClickListener());
+                db3.setOnClickListener(new dbBtnOnClickListener());
+                if(db>100){ //3개
+                    ldb.setVisibility(View.VISIBLE);
+                    db3.setVisibility(View.VISIBLE);
+                    dbBtnSelection(db1);
+                }else if(db>10){    //2개
+                    ldb.setVisibility(View.VISIBLE);
+                    if(db%10 == 3){
+                        db3.setVisibility(View.VISIBLE);
+                    }else{
+
+                    }
+
+
+                }else{  //1개
+
+                }
+
+                String sDB = Prefer.getPrefString("DB","1");
+                switch (sDB){
+                    case "1" :
+                        dbBtnSelection(db1);
+                        break;
+                    case "2" :
+                        dbBtnSelection(db2);
+                        break;
+                    case "3" :
+                        dbBtnSelection(db3);
+                        break;
+                }
                 loading_nvlist.setVisibility(View.GONE);
 
             }
@@ -594,16 +559,17 @@ public class MainActivity extends AppCompatActivity
         ImageButton db2 = (ImageButton)findViewById(R.id.btnDB2);
         ImageButton db3 = (ImageButton)findViewById(R.id.btnDB3);
 
-
+        String db = "";
 
         db1.setSelected(false);
         db2.setSelected(false);
         db3.setSelected(false);
 
         View thisBtn = (ImageButton)v;
+        db = thisBtn.getTag().toString();
         thisBtn.setSelected(true);
         Prefer.setPref("DB",thisBtn.getTag().toString());
-        setjNvData(thisBtn.getTag().toString(),null,null,null);
+        setjNvData(db,null,null,null);
 
 
         JSONObject msg = MakeJSONData.get(MsgType.LOAD_NVLIST,thisBtn.getTag().toString(),selectChart);
@@ -618,12 +584,33 @@ public class MainActivity extends AppCompatActivity
         }
         Log.e("dbBtnSelec","asd"+rcvData.toString());
 
+
+
         nvListRecyclerAdapter = NvListRecyclerAdapter.getInstance(rcvData.toString());
         recyclerViewNvList = (RecyclerView)findViewById(R.id.recyclerNvList);
 
         Message message = handler1.obtainMessage();
         handler1.sendMessage(message);
         nvListRecyclerAdapter.notifyDataSetChanged();
+
+        /*//db 생성
+        NvChartDB nvChartDB = new NvChartDB(this,"NVCHART",null,1);
+        SQLiteDatabase database = nvChartDB.getReadableDatabase();
+        for(int i = 0; i<nvListRecyclerAdapter.getItemCount();i++){
+            String _nodekey = nvListRecyclerAdapter.getNodeKey(i);
+            String sql = "select * from NVCHART where NODEKEY = '"+_nodekey+"' and DB_NO='"+db+"'";
+            Log.e("SQLITE",sql);
+            Cursor cursor = database.rawQuery(sql,null);
+            if(cursor.getCount()==0){
+                database = nvChartDB.getWritableDatabase();
+                sql = "insert into NVCHART(DB_NO,NODEKEY) values ('"+db+"','"+_nodekey+"')";
+                database.execSQL(sql);
+            }
+            cursor.close();
+        }
+        nvChartDB.close();
+        database.close();*/
+
 
 
         setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(0),nvListRecyclerAdapter.getPageCnt(0));
@@ -636,55 +623,17 @@ public class MainActivity extends AppCompatActivity
 
     }
 
-    public interface Refresh {
-        void refreshData(String date);
-    }
+    private void closeKeyBoard(){
 
-    public void onClick_btnRefresh(View v) {
-        refreshData();
-    }
-
-    public void refreshData(){
-
-        orderTable.refreshData(getSelectedDate());
-        waitTable.refreshData(getSelectedDate());
-    }
-    public void onClick_datePicker(View v) {
-        datePickerDialog.setOnDateSetListener(new DatePickerDialog.OnDateSetListener() {
-            @Override
-            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
-                Log.e("datePicker","date = " + year+month+dayOfMonth);
-                Calendar selectCal = Calendar.getInstance();
-                selectCal.set(year,month,dayOfMonth);
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd (E)");
-                String date = sdf.format(selectCal.getTime());
-                dateView.setText(date);
-                refreshData();
-
-
-            }
-        });
-        datePickerDialog.show();
-    }
-
-    public static String getSelectedDate(){
-        int year = datePickerDialog.getDatePicker().getYear();
-        int month = datePickerDialog.getDatePicker().getMonth();
-        int dayOfMonth = datePickerDialog.getDatePicker().getDayOfMonth();
-
-        Calendar selectCal = Calendar.getInstance();
-        selectCal.set(year,month,dayOfMonth);
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        String date = sdf.format(selectCal.getTime());
-
-        Log.e("datePicker","new date = " + date);
-
-        return date;
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(editName.getWindowToken(), 0);
+        imm.hideSoftInputFromWindow(editChartNo.getWindowToken(), 0);
     }
 
     public void onClick_btnSearch(View v){
         JSONObject rcvData = new JSONObject();
 
+        closeKeyBoard();
         String name = editName.getText().toString().trim();
         String chart = editChartNo.getText().toString().trim();
 
@@ -728,25 +677,22 @@ public class MainActivity extends AppCompatActivity
 
             RecyclerView recyclerView = (RecyclerView)navigationView.findViewById(R.id.recyclerCust);
             final CustListRecyclerAdapter adapter = new CustListRecyclerAdapter(rcvData.toString());
+            if(adapter.getItemCount()==0){
+                Toasty.warning(this,"검색 결과가 없습니다.").show();
+            }
             if(adapter.getItemCount()==1){
                 load_NvChart(adapter.getChartNo(0));
             }
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
             recyclerView.setAdapter(adapter);
 
-            recyclerView.addOnItemTouchListener(new RecyclerTouchListener(this,recyclerView,new RecyclerTouchListener.ClickListener(){
+            ItemClickSupport.addTo(recyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
                 @Override
-                public void onClick(View view, int position) {
+                public void onItemClicked(RecyclerView recyclerView, int position, View v) {
                     selectChart = adapter.getChartNo(position);
                     load_NvChart(selectChart);
                 }
-
-                @Override
-                public void onLongClick(View view, int position) {
-
-                }
-            }));
-
+            });
         }
     }
 
@@ -759,8 +705,8 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void load_NvChart(final String chartNo){
+
         if(nvListRecyclerAdapter == null){
-            Log.e("load_nvchart","asd");
             loadDBList();
         }
 
@@ -789,7 +735,6 @@ public class MainActivity extends AppCompatActivity
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(editChartNo.getWindowToken(), 0);
         imm.hideSoftInputFromWindow(editName.getWindowToken(), 0);
-        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
         Thread worker = new Thread(new Runnable() {
             @Override
@@ -816,9 +761,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if(bottomSheetBehavior.getState()==BottomSheetBehavior.STATE_EXPANDED){
-            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        }else if (drawer.isDrawerOpen(GravityCompat.START)) {
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         }else if(fragment instanceof NvChart){
             /*selectChart = null;
@@ -868,6 +811,16 @@ public class MainActivity extends AppCompatActivity
             startActivity(settings);
             return true;
         }
+        if(id==R.id.action_node){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    FragmentManager fm = getSupportFragmentManager();
+                    NodeRefreshDialog nodeRefreshDialog = new NodeRefreshDialog();
+                    nodeRefreshDialog.show(fm,"");
+                }
+            }).start();
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -903,7 +856,7 @@ public class MainActivity extends AppCompatActivity
         return gesturedetector.onTouchEvent(ev);
 
     }*/
-    class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+    /*class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
 
         private static final int SWIPE_MIN_DISTANCE = 20;
 
@@ -932,12 +885,12 @@ public class MainActivity extends AppCompatActivity
                             Toast.LENGTH_SHORT).show();
                     //Now Set your animation
 
-                    /*if(ivLayer2.getVisibility()==View.GONE)
+                    *//*if(ivLayer2.getVisibility()==View.GONE)
                     {
                         Animation fadeInAnimation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_right_in);
                         ivLayer2.startAnimation(fadeInAnimation);
                         ivLayer2.setVisibility(View.VISIBLE);
-                    }*/
+                    }*//*
 
                     if(bottomFragment instanceof WaitTable){
                         bottomFragment = new OrderTable();
@@ -951,12 +904,12 @@ public class MainActivity extends AppCompatActivity
                     Toast.makeText(getApplicationContext(), "Left Swipe",
                             Toast.LENGTH_SHORT).show();
 
-                    /*if(ivLayer2.getVisibility()==View.VISIBLE)
+                    *//*if(ivLayer2.getVisibility()==View.VISIBLE)
                     {
                         Animation fadeInAnimation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_left_out);
                         ivLayer2.startAnimation(fadeInAnimation);
                         ivLayer2.setVisibility(View.GONE);
-                    }*/
+                    }*//*
                     if(bottomFragment instanceof OrderTable){
                         bottomFragment = new WaitTable();
                         FragmentManager fm = getSupportFragmentManager();
@@ -995,5 +948,5 @@ public class MainActivity extends AppCompatActivity
 
     }
 
-
+*/
 }

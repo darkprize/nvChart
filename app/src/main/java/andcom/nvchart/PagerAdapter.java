@@ -24,11 +24,11 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
 
         switch (position) {
             case 0:
-                WaitTable tab1 = new WaitTable();
+                //WaitTable tab1 = new WaitTable();
                 return waitTable;
             case 1:
 
-                OrderTable tab2 = new OrderTable();
+                //OrderTable tab2 = new OrderTable();
                 return orderTable;
             default:
                 return null;

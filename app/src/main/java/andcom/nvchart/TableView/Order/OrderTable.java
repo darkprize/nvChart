@@ -11,32 +11,31 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-
-import com.evrencoskun.tableview.TableView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.List;
 
+import andcom.nvchart.ASyncTextSocket;
 import andcom.nvchart.MainActivity;
 import andcom.nvchart.MakeJSONData;
 import andcom.nvchart.MsgType;
 import andcom.nvchart.R;
-import andcom.nvchart.RecyclerTouchListener;
 import andcom.nvchart.SendData;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import andcom.nvchart.TableView.WaitingBoardDialog;
+import andcom.nvchart.util.ClickItem;
+import andcom.nvchart.util.ItemClickSupport;
 import es.dmoral.toasty.Toasty;
 
 
-public class OrderTable extends Fragment implements MainActivity.Refresh {
-
+public class OrderTable extends Fragment {
+    ClickItem clickItem=null;
     private RecyclerView recyclerViewCall,recyclerViewOrder1,recyclerViewOrder2,recyclerViewOrder3,recyclerViewOrder4;
     private OrderRecyclerAdapter orderRecyclerAdapter;
     private OrderCashRecyclerAdapter orderCashRecyclerAdapter,orderCashRecyclerAdapter1,orderCashRecyclerAdapter2,orderCashRecyclerAdapter3,orderCashRecyclerAdapter4;
@@ -67,7 +66,6 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.content_order_table, container, false);
         this.context = getContext();
-
         return view;
     }
     @Override
@@ -76,9 +74,13 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
 
         initRecyclerView();
         RecyclerViewVisibility();
-        refreshData(MainActivity.getSelectedDate());
-    }
+        refreshDataAsync(WaitingBoardDialog.getSelectedDate());
 
+        //refreshData(MainActivity.getSelectedDate());
+    }
+    public void setClickItem(ClickItem clickItem){
+        this.clickItem = clickItem;
+    }
     private void RecyclerViewVisibility(){
 
         layoutCall = (LinearLayout)getView().findViewById(R.id.layoutCall);
@@ -143,9 +145,8 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
         }
     }
 
-    @Override
     public void refreshData(String date){
-        Log.d("refreshData","re");
+        Log.d("refreshData","re order");
 
         JSONObject rcvData = SendData.getMessage(context,MakeJSONData.get(MsgType.LOAD_ORDER,date).toString());
         try{
@@ -180,22 +181,18 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
         recyclerViewCall.setAdapter(orderRecyclerAdapter);
         orderRecyclerAdapter.notifyDataSetChanged();
 
-        recyclerViewCall.addOnItemTouchListener(new RecyclerTouchListener(context, recyclerViewCall, new RecyclerTouchListener.ClickListener() {
+
+        ItemClickSupport.addTo(recyclerViewCall).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
             @Override
-            public void onClick(View view, int position) {
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
                 Message msg = MainActivity.handler.obtainMessage();
                 msg.what = MsgType.LOAD_NVCHART;
                 msg.obj = orderRecyclerAdapter.getChartNo(position);
 
                 MainActivity.handler.sendMessage(msg);
+                clickItem.click();
             }
-
-            @Override
-            public void onLongClick(View view, int position) {
-
-            }
-        }));
-
+        });
 
         final RecyclerView[] arrRecyclerView = {recyclerViewOrder1,recyclerViewOrder2,recyclerViewOrder3,recyclerViewOrder4};
         OrderCashRecyclerAdapter[] orderCashRecyclerAdapter = {orderCashRecyclerAdapter1,orderCashRecyclerAdapter2,orderCashRecyclerAdapter3,orderCashRecyclerAdapter4};
@@ -206,24 +203,92 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
             arrRecyclerView[i].setAdapter(orderCashRecyclerAdapter[i]);
             orderCashRecyclerAdapter[i].notifyDataSetChanged();
 
-            arrRecyclerView[i].addOnItemTouchListener(new RecyclerTouchListener(context, arrRecyclerView[i], new RecyclerTouchListener.ClickListener() {
+
+            ItemClickSupport.addTo(arrRecyclerView[i]).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
                 @Override
-                public void onClick(View view, int position) {
-                    RecyclerView recyclerView = (RecyclerView)view.getParent();
+                public void onItemClicked(RecyclerView r, int position, View v) {
+                    RecyclerView recyclerView = (RecyclerView)v.getParent();
                     OrderCashRecyclerAdapter orderCashRecyclerAdapter = (OrderCashRecyclerAdapter)recyclerView.getAdapter();
                     Message msg = MainActivity.handler.obtainMessage();
                     msg.what = MsgType.LOAD_NVCHART;
                     msg.obj = orderCashRecyclerAdapter.getChartNo(position);
 
                     MainActivity.handler.sendMessage(msg);
+                    clickItem.click();
                 }
-
-                @Override
-                public void onLongClick(View view, int position) {
-
-                }
-            }));
+            });
         }
+    }
+    public void refreshDataAsync(String date){
+        Log.d("refreshData","re order");
+
+
+        SendData.getMessageAsync(context,MakeJSONData.get(MsgType.LOAD_ORDER,date).toString(),new ASyncTextSocket.AsyncResponse() {
+            @Override
+            public void processFinish(String rcvMsg) {
+
+                try{
+                    JSONObject rcvData = new JSONObject(rcvMsg);
+                    JSONArray arrCall=new JSONArray();
+                    JSONArray arrCash=new JSONArray();
+
+                    try{
+                        JSONArray jsonArray = rcvData.getJSONArray("List");
+                        for(int i=0;i<jsonArray.length();i++){
+                            try{
+                                jsonArray.getJSONObject(i).getString("CATIME");
+                                arrCall.put(jsonArray.getJSONObject(i));
+                            }catch (JSONException e){
+                                arrCash.put(jsonArray.getJSONObject(i));
+                            }
+                        }
+
+                    }catch (JSONException je){
+                        je.printStackTrace();
+                    }
+
+
+                    orderRecyclerAdapter = new OrderRecyclerAdapter(arrCall);
+                    LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
+
+                    recyclerViewCall.setLayoutManager(linearLayoutManager);
+                    recyclerViewCall.setAdapter(orderRecyclerAdapter);
+                    orderRecyclerAdapter.notifyDataSetChanged();
+
+                    final RecyclerView[] arrRecyclerView = {recyclerViewOrder1,recyclerViewOrder2,recyclerViewOrder3,recyclerViewOrder4};
+                    OrderCashRecyclerAdapter[] orderCashRecyclerAdapter = {orderCashRecyclerAdapter1,orderCashRecyclerAdapter2,orderCashRecyclerAdapter3,orderCashRecyclerAdapter4};
+                    for(int i=0;i<arrRecyclerView.length;i++){
+                        LinearLayoutManager linearLayoutManager2 = new LinearLayoutManager(getActivity());
+                        orderCashRecyclerAdapter[i] = new OrderCashRecyclerAdapter(arrCash,i);
+                        arrRecyclerView[i].setLayoutManager(linearLayoutManager2);
+                        arrRecyclerView[i].setAdapter(orderCashRecyclerAdapter[i]);
+                        orderCashRecyclerAdapter[i].notifyDataSetChanged();
+
+                        ItemClickSupport.addTo(arrRecyclerView[i]).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
+                            @Override
+                            public void onItemClicked(RecyclerView r, int position, View v) {
+                                RecyclerView recyclerView = (RecyclerView)v.getParent();
+                                OrderCashRecyclerAdapter orderCashRecyclerAdapter = (OrderCashRecyclerAdapter)recyclerView.getAdapter();
+                                Message msg = MainActivity.handler.obtainMessage();
+                                msg.what = MsgType.LOAD_NVCHART;
+                                msg.obj = orderCashRecyclerAdapter.getChartNo(position);
+
+                                MainActivity.handler.sendMessage(msg);
+                                clickItem.click();
+                            }
+                        });
+                    }
+                }catch (JSONException je2){
+                    je2.printStackTrace();
+                }
+            }
+        });
+
+
+
+
+
+
     }
     public void initRecyclerView(){
         Log.d("OrderTable","initRecyclerView");
@@ -247,5 +312,18 @@ public class OrderTable extends Fragment implements MainActivity.Refresh {
         recyclerViewOrder3 = (RecyclerView)getView().findViewById(R.id.recycler3);
         recyclerViewOrder4 = (RecyclerView)getView().findViewById(R.id.recycler4);
 
+
+        ItemClickSupport.addTo(recyclerViewCall).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
+            @Override
+            public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+
+                Message msg = MainActivity.handler.obtainMessage();
+                msg.what = MsgType.LOAD_NVCHART;
+                msg.obj = orderRecyclerAdapter.getChartNo(position);
+
+                MainActivity.handler.sendMessage(msg);
+                clickItem.click();
+            }
+        });
     }
 }

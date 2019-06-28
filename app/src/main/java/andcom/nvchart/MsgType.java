@@ -26,6 +26,8 @@ public class MsgType {
             ,REFRESH_NVCHART = 17
             ,NVCHART_RELEASE=18
             ,CLOSE_CHART=19
-            ,TOAST_MSG =20;
+            ,TOAST_MSG =20
+            ,SET_CUST_NAME = 21
+            ,OPEN_DRAWER = 22;
 
 }

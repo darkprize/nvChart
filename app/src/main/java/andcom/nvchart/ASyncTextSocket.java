@@ -32,6 +32,13 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
     /*
     로딩화면 제어 변수
      */
+
+    public interface AsyncResponse{
+        void processFinish(String msg);
+
+    }
+
+    AsyncResponse delegate;
     static final int START_AND_END_BOTH = 0;        //디폴트값:시작,종료
     static final int START_ONLY = 1;                //시작만
     static final int NO_OPR = 2;                    //동작없음
@@ -62,16 +69,14 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
     //LoadingProgress loadingProgress;
 
     int bMulti = START_AND_END_BOTH;
-    public ASyncTextSocket(Activity activity, String ip, int port){
+    public ASyncTextSocket(Activity activity){
         this.activity = activity;
         this.context = (Context)activity;
-        this.ip=ip;
-        this.port=port;
     }
-    public ASyncTextSocket(Activity activity, int bMulti){
+    public ASyncTextSocket(Activity activity,AsyncResponse delegate){
         this.activity = activity;
-        this.bMulti = bMulti;
-
+        this.context = (Context)activity;
+        this.delegate = delegate;
     }
     @Override
     public void onPreExecute() {
@@ -79,8 +84,8 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
         Log.i(logcat,"onPreExecute");
 
         //SharedPreferences prefer = PreferenceManager.getDefaultSharedPreferences(activity);
-        //ip = prefer.getString("key_ip","");
-        //port = Integer.parseInt(prefer.getString("key_port","80"));
+        ip = Prefer.getPrefString("key_ip","");
+        port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
 
         //Log.i(logcat,"ip : " + MainActivity.CONNECT_IP + ", port : "+MainActivity.CONNECT_PORT);
         //ip ="192.168.10.186";
@@ -127,12 +132,12 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
             String msg = new String();
 
             int len;
-            byte[] buffer = new byte[5124];
+            byte[] buffer = new byte[1024];
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
             while((len = bufferedInputStream.read(buffer)) != -1){
 
-                String packet = new String(buffer);
-                result += packet;
+                bos.write(buffer,0,len);
 
                 long searchStart = System.currentTimeMillis();
                 if(indexOf(buffer,"---AndcomData_END---".getBytes(),0)>=0){
@@ -143,15 +148,11 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
 
                 Log.e("packetSearchTime","="+String.format("%.4f",(searchEnd-searchStart)/1000.0000f) );
 
-
-                /*
-                if(packet.contains("---AndcomData_END---"))
-                {
-                    Log.e("break2","socket end");
-                    break;
-                }*/
-
             }
+
+            byte[] data = bos.toByteArray();
+            bos.close();
+            result = new String(data);
             long dataTimeEnd = System.currentTimeMillis();
             Log.e("packetTransferTime1","="+ String.format("%.4f",(dataTimeEnd-dataTimeStart)/1000.0000f));
 
@@ -173,7 +174,23 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
             //progressOFF();
             result=null;
         }
-        Log.w("TextSocket","result = " + result);
+        //Log.w("TextSocket","result = " + result);
+        String temp = result;
+        int log_index = 1;
+        try {
+            while (temp.length() > 0) {
+                if (temp.length() > 2000) {
+                    Log.e("textSocketResult", "json - " + log_index + " : "
+                            + temp.substring(0, 2000));
+                    temp = temp.substring(2000);
+                    log_index++;
+                } else {
+                    Log.e("textSocketResult", "json - " + log_index + " :" + temp);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+        }
         return result;
     }
     public static String byteArrayToBinaryString(byte[] b) {
@@ -232,6 +249,8 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
     protected void onPostExecute(String s) {
         super.onPostExecute(s);
         Log.d(logcat,"onPostExecute");
+        if(delegate != null)
+            delegate.processFinish(s);
         //loadingProgress.progressOFF();
 
     }

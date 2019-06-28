@@ -37,7 +37,15 @@
             android:key="key_phone"
             android:editable="false"
             />
-    </PreferenceCategory>
+    </PreferenceCategory><!--
+    <PreferenceCategory
+        android:title="@string/setting_category_4">
+        <Preference
+            android:title="@string/setting_node"
+            android:key="key_node"
+            android:editable="false"
+            />
+    </PreferenceCategory>-->
     <PreferenceCategory
         android:title="@string/setting_category_3">
         <Preference
