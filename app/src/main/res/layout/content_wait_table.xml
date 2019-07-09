@@ -29,7 +29,7 @@
                 android:text="수진자명(차트번호)"/>
             <TextView
                 style="@style/WaitHeaderStyle"
-                android:layout_weight="7"
+                android:layout_weight="10"
                 android:text="상태"/>
             <TextView
                 style="@style/WaitHeaderStyle"
@@ -37,8 +37,8 @@
                 android:text="시간(대기시간)"/>
             <TextView
                 style="@style/WaitHeaderStyle"
-                android:layout_weight="36"
-                android:text="내역/예약공간/예약시간(경과시간)"/>
+                android:layout_weight="33"
+                android:text="내역/예약시간(경과시간)"/>
             <TextView
                 style="@style/WaitHeaderStyle"
                 android:layout_weight="10"

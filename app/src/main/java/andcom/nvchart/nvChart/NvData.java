@@ -8,7 +8,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Environment;
 import android.util.Log;
 
@@ -16,10 +19,15 @@ import com.jpegkit.Jpeg;
 import com.samsung.android.sdk.composer.document.textspan.SpenTextSpan;
 import com.samsung.android.sdk.pen.Spen;
 import com.samsung.android.sdk.pen.SpenSettingPenInfo;
+import com.samsung.android.sdk.pen.document.SpenObjectBase;
 import com.samsung.android.sdk.pen.document.SpenObjectImage;
+import com.samsung.android.sdk.pen.document.SpenObjectLine;
+import com.samsung.android.sdk.pen.document.SpenObjectShape;
 import com.samsung.android.sdk.pen.document.SpenObjectStroke;
 import com.samsung.android.sdk.pen.document.SpenObjectTextBox;
 import com.samsung.android.sdk.pen.document.SpenPageDoc;
+import com.samsung.android.sdk.pen.document.shapeeffect.SpenLineColorEffect;
+import com.samsung.android.sdk.pen.document.textspan.SpenAlignmentParagraph;
 import com.samsung.android.sdk.pen.document.textspan.SpenBackgroundColorSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenComposingSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenFontNameSpan;
@@ -28,6 +36,7 @@ import com.samsung.android.sdk.pen.document.textspan.SpenForegroundColorSpan;
 import com.samsung.android.sdk.pen.document.textspan.SpenLineSpacingParagraph;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextParagraphBase;
 import com.samsung.android.sdk.pen.document.textspan.SpenTextSpanBase;
+import com.samsung.android.sdk.pen.engine.SpenTextMeasure;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,7 +52,11 @@ import java.util.ArrayList;
 
 import andcom.nvchart.ASyncSocket;
 import andcom.nvchart.Prefer;
+import andcom.nvchart.R;
 import andcom.nvchart.util.NvChartDB;
+
+import static com.samsung.android.sdk.pen.document.shapeeffect.SpenLineColorEffect.COLOR_NONE;
+import static com.samsung.android.sdk.pen.document.textspan.SpenLineSpacingParagraph.TYPE_PIXEL;
 
 public class NvData {
     private JSONObject jsonObject;
@@ -101,7 +114,7 @@ public class NvData {
 
             makeBackImage();
 
-            ScaleWidth = jpg.getWidth() * 5.08f;
+            ScaleWidth = jpg.getWidth() * 5.08f ;
             ScaleHeight = jpg.getHeight() * 5.08f;
             Log.e("jpgSize","w="+jpg.getWidth()+" h="+jpg.getHeight());
             Log.e("jpgScale","w="+ScaleWidth+" h="+ScaleHeight);
@@ -135,7 +148,92 @@ public class NvData {
         Log.e("jpgScale","w="+ScaleWidth+" h="+ScaleHeight);
         Log.e("NvDataJsonData","JsonData = "+jsonData);
 
+    }
+    public ArrayList<SpenObjectBase> getSignData(){
+        try {
+            //"SignData":
+            // [
+            //{"SIGN_NAME":"홍길동","SIGN_TSA":"20181113131500"}     //전자서명 이름, TSA
+            // ]
 
+            JSONObject signData = jsonObject.getJSONArray("SignData").getJSONObject(0);
+            //JSONObject signData = new JSONObject("{\"SIGN_NAME\":\"홍길동\",\"SIGN_TSA\":\"20181113131500\"}");  //test data
+            String signDate = signData.getString("SIGN_TSA");
+            String yy_mm_dd = signDate.substring(0,4) + "-" + signDate.substring(4,6)+"-"+signDate.substring(6,8)+"\r";
+            String hh_MM_ss = signDate.substring(8,10) + ":" + signDate.substring(10,12)+":"+signDate.substring(12,14)+"\r";
+            String by = "by "+ signData.getString("SIGN_NAME");
+            String signInfo = yy_mm_dd + hh_MM_ss + by;
+
+            ArrayList<SpenObjectBase> lists = new ArrayList<>();
+            float line = 100;
+            float padding = 10;
+            RectF rect = new RectF(jpg.getWidth() - line - padding,padding,jpg.getWidth()-padding,line+padding);
+            PointF p1 = new PointF(rect.left,rect.top);
+            PointF p2 = new PointF(rect.left,rect.bottom);
+            PointF p3 = new PointF(rect.right,rect.top);
+            PointF p4 = new PointF(rect.right,rect.bottom);
+
+            SpenLineColorEffect colorEffect = new SpenLineColorEffect();
+            colorEffect.setSolidColor(Color.RED);
+            SpenObjectLine line1 = new SpenObjectLine(0,p1,p2);
+            line1.setLineColorEffect(colorEffect);
+            SpenObjectLine line2 = new SpenObjectLine(0,p1,p3);
+            line2.setLineColorEffect(colorEffect);
+            SpenObjectLine line3 = new SpenObjectLine(0,p2,p4);
+            line3.setLineColorEffect(colorEffect);
+            SpenObjectLine line4 = new SpenObjectLine(0,p3,p4);
+            line4.setLineColorEffect(colorEffect);
+
+            lists.add(line1);
+            lists.add(line2);
+            lists.add(line3);
+            lists.add(line4);
+
+            SpenObjectImage signMark = new SpenObjectImage();
+            Drawable drawable = context.getDrawable(R.drawable.signdata_mark);
+            Bitmap bitmap = ((BitmapDrawable)drawable).getBitmap();
+
+            signMark.setImage(bitmap);
+
+            RectF rectImage = new RectF(jpg.getWidth() - line - padding+2,padding+2,jpg.getWidth()-padding-2,0);
+            rectImage.bottom = rectImage.width()/bitmap.getWidth() * bitmap.getHeight() + padding;
+            signMark.setRect(rectImage,true);
+
+            lists.add(signMark);
+
+            RectF rectInfo = new RectF(rectImage.left,rectImage.bottom,rectImage.right,line3.getRect().top);    //텍스트박스 위치설정
+            SpenObjectShape shape = new SpenObjectShape();
+            shape.setRect(rectInfo,false);
+            colorEffect.setColorType(COLOR_NONE);
+            shape.setLineColorEffect(colorEffect);
+            shape.setShapeType(SpenObjectShape.TYPE_RECTANGLE);
+            shape.setText(signInfo);
+            shape.setMargin(3,0,0,0);
+
+            SpenFontSizeSpan span = new SpenFontSizeSpan();
+            span.setPosition(0,signInfo.length());
+            span.setSize(15);
+
+            ArrayList<SpenTextSpanBase> spans = new ArrayList<>();
+            spans.add(span);
+
+            SpenAlignmentParagraph paragraph = new SpenAlignmentParagraph();
+            paragraph.setAlignment(SpenAlignmentParagraph.ALIGN_LEFT);
+
+            ArrayList<SpenTextParagraphBase> paragraphBases = new ArrayList<>();
+            paragraphBases.add(paragraph);
+
+            shape.setTextSpan(spans);
+            shape.setTextParagraph(paragraphBases);
+
+            lists.add(shape);
+
+
+            return lists;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
     public String[] getPenData(){
         try{
@@ -313,12 +411,10 @@ public class NvData {
                     String line = System.getProperty("line.separator");
                     data = data.replace("\r","");
                     jsonObject.put("POSITION",data.length()+"/"+jsonObject.getString("POSITION"));
-
                     SpenObjectTextBox textObj = new SpenObjectTextBox(data);
-                    //RectF textPoint = getRealPoint(x1,y1,0,0);
                     RectF textPoint = makePosition(jsonObject.getString("POSITION"),type);
 
-                    ArrayList<SpenTextSpanBase> spans = new ArrayList<SpenTextSpanBase>();
+                    ArrayList<SpenTextSpanBase> spans = new ArrayList<>();
                     SpenFontNameSpan fontNameSpan = new SpenFontNameSpan();
                     SpenForegroundColorSpan colorSpan = new SpenForegroundColorSpan();
                     SpenFontSizeSpan sizeSpan = new SpenFontSizeSpan();
@@ -339,9 +435,13 @@ public class NvData {
                     }
                     Log.e("RectF-1",data+textPoint.toString());
 
+                    int nLine = textObj.getText().split("\n").length;
+                    textPoint.bottom = textPoint.top + 25 * nLine;
+
                     textObj.setFontSize(18);
-                    textObj.setRect(textPoint,true);
+                    textObj.setRect(textPoint,false);
                     textObj.setMargin(0,0,0,0);
+
 
                     ArrayList<SpenTextParagraphBase> paragraphBase = new ArrayList<>();
                     SpenLineSpacingParagraph lineSpacingParagraph = new SpenLineSpacingParagraph();
@@ -352,9 +452,8 @@ public class NvData {
 
                     textObj.setTextParagraph(paragraphBase);
 
-                    //textObj.setTextColor(getColor(jsonObject.getInt("COLOR"),3));
-                    //Log.e("FontName",textObj.getFont());
                     textObj.setTextSpan(spans);
+                    textObj.setAutoFitOption(SpenObjectShape.AUTO_FIT_NONE);
                     lists.add(textObj);
                 }catch (JSONException je){
                     je.printStackTrace();
@@ -417,6 +516,73 @@ public class NvData {
                 }
 
             }*/
+        }
+
+
+        return lists;
+    }
+
+    public ArrayList<SpenObjectBase> getTextObjectData2(int type){
+        ArrayList<SpenObjectBase> lists = new ArrayList<>();
+        if(getTextData(type)==null){
+            return lists;
+        }
+        if(!(getTextData(type).length>0)){
+            return lists;
+        }
+        for(String text : getTextData(type)){
+
+            if(text.length()>20){
+                try{
+                    JSONObject jsonObject = new JSONObject(text);
+                    int color = jsonObject.getInt("COLOR");
+                    if(type==NvConstant.LABEL_OBJ && color==1){
+                        color = 0;
+                    }
+                    //String[] position = jsonObject.getString("POSITION").split("/");
+                    String data = jsonObject.getString("DESC");
+                    String line = System.getProperty("line.separator");
+                    data = data.replace("\r","");
+                    jsonObject.put("POSITION",data.length()+"/"+jsonObject.getString("POSITION"));
+
+                    RectF textPoint = makePosition(jsonObject.getString("POSITION"),type);
+                    SpenLineColorEffect colorEffect = new SpenLineColorEffect();
+                    SpenObjectShape shape = new SpenObjectShape();
+                    shape.setRect(textPoint,false);
+                    colorEffect.setColorType(COLOR_NONE);
+                    shape.setLineColorEffect(colorEffect);
+                    shape.setShapeType(SpenObjectShape.TYPE_RECTANGLE);
+                    shape.setText(data);
+                    shape.setMargin(0,0,0,0);
+
+                    SpenFontSizeSpan fontSizeSpan = new SpenFontSizeSpan();
+                    fontSizeSpan.setPosition(0,data.length());
+                    fontSizeSpan.setSize(18);
+                    SpenForegroundColorSpan colorSpan = new SpenForegroundColorSpan();
+                    colorSpan.setColor(NvConstant.getColor(3,color));
+
+                    ArrayList<SpenTextSpanBase> spans = new ArrayList<>();
+                    spans.add(fontSizeSpan);
+                    spans.add(colorSpan);
+
+                    SpenAlignmentParagraph paragraph = new SpenAlignmentParagraph();
+                    paragraph.setAlignment(SpenAlignmentParagraph.ALIGN_LEFT);
+                    SpenLineSpacingParagraph lineSpacingParagraph = new SpenLineSpacingParagraph(0,data.length(), TYPE_PIXEL,0);
+
+
+                    ArrayList<SpenTextParagraphBase> paragraphBases = new ArrayList<>();
+                    paragraphBases.add(paragraph);
+                    paragraphBases.add(lineSpacingParagraph);
+
+                    shape.setTextSpan(spans);
+                    shape.setTextParagraph(paragraphBases);
+
+                    lists.add(shape);
+                }catch (JSONException je){
+                    je.printStackTrace();
+                }
+
+            }
         }
 
 

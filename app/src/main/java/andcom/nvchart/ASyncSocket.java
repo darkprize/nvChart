@@ -144,19 +144,19 @@ public class ASyncSocket extends AsyncTask<String,Void,byte[]> {
             File file = new File(context.getFilesDir()+ File.separator+"stroke1");
             if(!file.exists())
                 file.createNewFile();
-            FileOutputStream fos = new FileOutputStream(file);
+            //FileOutputStream fos = new FileOutputStream(file);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
             while((len = bufferedInputStream.read(buffer)) != -1){
                 Log.e("socket","recieve "+len);
-                fos.write(buffer,0,len);
+                //fos.write(buffer,0,len);
                 bos.write(buffer,0,len);
 
                 String packet = new String(buffer);
                 //result += packet;
 
                 long searchStart = System.currentTimeMillis();
-                if(indexOf(buffer,"---AndcomData_END---".getBytes(),0)>=0){
+                if(indexOf(bos.toByteArray(),"---AndcomData_END---".getBytes(),0)>=0){
                     Log.e("break1","socket end");
                     break;
                 }
@@ -182,8 +182,6 @@ public class ASyncSocket extends AsyncTask<String,Void,byte[]> {
             bos.flush();
             bos.close();
 
-            fos.close();
-            fos.flush();
             socket.close();
             Log.e("packetTransferTime2","="+ String.format("%.4f",(System.currentTimeMillis()-dataTimeStart)/1000.0000f));
 /*

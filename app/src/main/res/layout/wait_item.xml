@@ -28,18 +28,32 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:id="@+id/icon"
-                android:src="@drawable/button_search"/>
+                android:src="@drawable/avatar"/>
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:orientation="vertical">
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:id="@+id/name"
-                    android:textColor="@color/state_card_textcolor"
-                    android:text="홍길동"/>
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/name"
+                        android:textColor="@color/state_card_textcolor"
+                        android:text="홍길동"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:gravity="end"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/age"
+                        android:textColor="@color/state_card_textcolor"
+                        android:text="(20/남)"/>
+                </LinearLayout>
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -50,7 +64,7 @@
 
         <TextView
             style="@style/WaitHeaderStyle"
-            android:layout_weight="7"
+            android:layout_weight="10"
             android:id="@+id/state"
             android:text="state"/>
         <TextView
@@ -60,7 +74,7 @@
             android:text="time"/>
         <TextView
             style="@style/WaitHeaderStyle"
-            android:layout_weight="36"
+            android:layout_weight="33"
             android:id="@+id/desc"
             android:text="desc"/>
         <TextView

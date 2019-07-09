@@ -150,7 +150,13 @@ public class WaitingBoardDialog extends DialogFragment implements ClickItem {
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
+                if(tab.getPosition()==0){
+                    waitTable.refreshDataAsync(getSelectedDate());
 
+                }else{
+                    orderTable.refreshDataAsync(getSelectedDate());
+
+                }
             }
         });
         waitTable = (WaitTable) pagerAdapter.getItem(0);

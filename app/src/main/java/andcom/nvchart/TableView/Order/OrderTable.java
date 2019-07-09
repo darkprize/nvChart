@@ -21,6 +21,7 @@ import andcom.nvchart.ASyncTextSocket;
 import andcom.nvchart.MainActivity;
 import andcom.nvchart.MakeJSONData;
 import andcom.nvchart.MsgType;
+import andcom.nvchart.Prefer;
 import andcom.nvchart.R;
 import andcom.nvchart.SendData;
 import androidx.annotation.Nullable;
@@ -95,41 +96,51 @@ public class OrderTable extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 layoutVisibility(layoutCall,isChecked);
+                Prefer.setPref("order_0",isChecked);
 
             }
         });
+        call.setChecked(Prefer.getPrefBoolean("order_0",true));
         CheckBox cash1 = (CheckBox)getView().findViewById(R.id.chkCash1);
         cash1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 layoutVisibility(layoutCash1,isChecked);
+                Prefer.setPref("order_1",isChecked);
 
             }
         });
+        cash1.setChecked(Prefer.getPrefBoolean("order_1",true));
         CheckBox cash2 = (CheckBox)getView().findViewById(R.id.chkCash2);
         cash2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 layoutVisibility(layoutCash2,isChecked);
+                Prefer.setPref("order_2",isChecked);
 
             }
         });
+        cash2.setChecked(Prefer.getPrefBoolean("order_2",true));
         CheckBox cash3 = (CheckBox)getView().findViewById(R.id.chkCash3);
         cash3.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 layoutVisibility(layoutCash3,isChecked);
+                Prefer.setPref("order_3",isChecked);
 
             }
         });
+        cash3.setChecked(Prefer.getPrefBoolean("order_3",true));
         CheckBox cash4 = (CheckBox)getView().findViewById(R.id.chkCash4);
         cash4.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 layoutVisibility(layoutCash4,isChecked);
+                Prefer.setPref("order_4",isChecked);
 
             }
         });
+        cash4.setChecked(Prefer.getPrefBoolean("order_4",true));
         layoutVisibility(layoutCall,call.isChecked());
         layoutVisibility(layoutCash1,cash1.isChecked());
         layoutVisibility(layoutCash2,cash2.isChecked());

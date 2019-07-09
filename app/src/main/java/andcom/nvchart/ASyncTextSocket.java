@@ -140,7 +140,10 @@ public class ASyncTextSocket extends AsyncTask<String,Void,String> {
                 bos.write(buffer,0,len);
 
                 long searchStart = System.currentTimeMillis();
-                if(indexOf(buffer,"---AndcomData_END---".getBytes(),0)>=0){
+
+                Log.e("TextSocketBuffer","TextSocketBuffer : "+new String(buffer));
+
+                if(indexOf(bos.toByteArray(),"---AndcomData_END---".getBytes(),0)>=0){
                     Log.e("break1","socket end");
                     break;
                 }

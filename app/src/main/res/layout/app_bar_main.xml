@@ -116,11 +116,24 @@
 
 
 
-            <View
+            <!--<View
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:id="@+id/bottomToolBarSlideBtn"/>
+                android:id="@+id/bottomToolBarSlideBtn"/>-->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center">
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:text="대기/진료 현황"
+                    android:fontFamily="@font/godo_m"
+                    android:textSize="15sp"
+                    android:id="@+id/btnWaitOrder"/>
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"

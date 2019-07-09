@@ -154,8 +154,8 @@ public class MainActivity extends AppCompatActivity
         context = this;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        final View bottomToolbar = (View) findViewById(R.id.bottomToolBarSlideBtn);
-        bottomToolbar.setOnClickListener(new View.OnClickListener() {
+        Button btnWaitOrder = findViewById(R.id.btnWaitOrder);
+        btnWaitOrder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 /*
@@ -319,8 +319,12 @@ public class MainActivity extends AppCompatActivity
                         Prefer.setPref("NVLIST",position);
 
                         nvListRecyclerAdapter.setSeletedPosition(position);
+                        if(selectChart!=null){
+                            load_NvChart(selectChart);
 
-                        load_NvChart(selectChart);
+                        }else{
+                            Toasty.info(context,"차트번호 또는 수진자명을 먼저 입력하세요.",Toasty.LENGTH_LONG).show();
+                        }
                     }
                 });
 
@@ -709,12 +713,14 @@ public class MainActivity extends AppCompatActivity
         if(nvListRecyclerAdapter == null){
             loadDBList();
         }
+        if(chartNo.equals("")){
 
+        }
         if(chartNo!=null){
             selectChart=chartNo;
             JSONObject rcvData = SendData.getMessage(this,MakeJSONData.get(MsgType.LOAD_NVLIST,Prefer.getPrefString("DB","1"),chartNo).toString());
             try{
-                Toasty.error(this,rcvData.getString("Code"),Toasty.LENGTH_LONG).show();
+                Toasty.error(this,rcvData.getString("Code")+":"+rcvData.getString("Msg"),Toasty.LENGTH_LONG).show();
                 return;
             }catch (JSONException je2){
 
@@ -778,7 +784,7 @@ public class MainActivity extends AppCompatActivity
 
             }else{
                 sendMessage(MsgType.CLOSE_CHART,"");
-                selectChart="";
+                selectChart=null;
             }
         }
     }

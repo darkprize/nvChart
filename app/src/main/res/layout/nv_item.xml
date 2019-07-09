@@ -23,7 +23,8 @@
             android:layout_height="wrap_content"
             android:text="NS_TITLE"
             android:id="@+id/title"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            android:fontFamily="@font/godo_m"/>
 
         <TextView
             android:layout_width="0dp"

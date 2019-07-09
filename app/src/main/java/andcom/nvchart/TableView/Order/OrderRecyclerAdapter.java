@@ -1,5 +1,7 @@
 package andcom.nvchart.TableView.Order;
 
+import android.graphics.Color;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import andcom.nvchart.MainActivity;
 import andcom.nvchart.R;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
@@ -42,6 +45,14 @@ public class OrderRecyclerAdapter extends RecyclerView.Adapter<OrderRecyclerAdap
                 holder.txtCharNo.setText(jsonItem.getString("CACHARTNO"));
                 holder.txtTime.setText(jsonItem.getString("CATIME"));
                 holder.txtDesc.setText(jsonItem.getString("CASIGN"));
+
+                if(!jsonItem.getString("CAVIP").equals("0")){
+                    String backgroundColor = jsonItem.getString("CAVIP_FONTFORECOLOR");
+                    backgroundColor = "#FF00FF";
+                    int backColor = Integer.parseInt(jsonItem.getString("CAVIP_FONTFORECOLOR"));
+
+                    holder.cardView.setCardBackgroundColor(Color.parseColor(toHex(backColor)));
+                }
                 holder.txtJsonBag.setText(jsonItem.toString());
             }catch (JSONException je){ //접수
                 je.printStackTrace();
@@ -55,7 +66,22 @@ public class OrderRecyclerAdapter extends RecyclerView.Adapter<OrderRecyclerAdap
 
     }
 
-
+    public static String toHex(int decimal){
+        int rem;
+        String hex="";
+        char hexchars[]={'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        while(decimal>0)
+        {
+            rem=decimal%16;
+            hex=hexchars[rem]+hex;
+            decimal=decimal/16;
+        }
+        while(hex.length()<6){
+            hex="0"+hex;
+        }
+        Log.w("toHex","#"+hex);
+        return "#"+hex;
+    }
     @Override
     public int getItemViewType(int position) {
         //return super.getItemViewType(position);

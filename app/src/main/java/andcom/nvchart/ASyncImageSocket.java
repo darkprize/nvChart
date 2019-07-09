@@ -130,20 +130,19 @@ public class ASyncImageSocket extends AsyncTask<byte[],Void,String> {
             int len;
 
             byte[] buffer = new byte[1024];
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
             while((len = bufferedInputStream.read(buffer)) != -1){
                 Log.e("socket","recieve "+len);
+                bos.write(buffer,0,len);
 
-                String packet = new String(buffer);
-
-                result += packet;
-                Log.e("saveChart socket","result " + result);
-                if(indexOf(buffer,"---AndcomData_END---".getBytes(),0)>=0){
+                if(indexOf(bos.toByteArray(),"---AndcomData_END---".getBytes(),0)>=0){
                     Log.e("break1","socket end");
                     break;
                 }
 
             }
-
+            result = bos.toString("EUC_KR");
             socket.close();
 
         }catch(IOException e){

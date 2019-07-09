@@ -1,7 +1,6 @@
 package andcom.nvchart.nvChart;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -34,13 +33,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.jpegkit.Jpeg;
-import com.jpegkit.JpegFile;
-import com.jpegkit.JpegKit;
 import com.samsung.android.sdk.SsdkUnsupportedException;
 import com.samsung.android.sdk.pen.Spen;
 import com.samsung.android.sdk.pen.SpenSettingPenInfo;
 import com.samsung.android.sdk.pen.document.SpenNoteDoc;
 import com.samsung.android.sdk.pen.document.SpenObjectBase;
+import com.samsung.android.sdk.pen.document.SpenObjectContainer;
 import com.samsung.android.sdk.pen.document.SpenObjectImage;
 import com.samsung.android.sdk.pen.document.SpenObjectLine;
 import com.samsung.android.sdk.pen.document.SpenObjectShape;
@@ -78,6 +76,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
@@ -124,6 +123,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     private final int CONTEXT_MENU_COPY_ID = 12;
     private final int CONTEXT_MENU_DELETE_ID = 13;
     private final int CONTEXT_MENU_SELECTALL_ID = 13;
+    private final int CONTEXT_MENU_CLOSE = 14;
 
 
     String state ;
@@ -149,7 +149,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     private LinearLayout progressBar;
     private CardView penOption,textOption;
     private ViewTreeObserver vto;
-    SpenContextMenu menu;
+    static SpenContextMenu menu;
     boolean isSpenFeatureEnabled = false;
     PointF[] points;
     float[] pressures;
@@ -307,6 +307,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 mSpenPageDoc.selectObject(mSpenPageDoc.getObjectList());
                 mSpenSurfaceView.update();
 
+                menu.close();
+                break;
+            case CONTEXT_MENU_CLOSE :
                 menu.close();
                 break;
         }
@@ -805,6 +808,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 if (TOOL_NAME.IMAGE.toString().equals(tag)) {
                     Log.e("NvChart", tag + " clicked");
                     v.setSelected(true);
+                    Prefer.setPref("PenMode", SpenSurfaceView.ACTION_SELECTION);
                     mMode = MODE_IMG_OBJ;
                     PickSetup setup = new PickSetup()
                             .setTitle("이미지 불러오기")
@@ -814,9 +818,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                             .setCameraButtonText("카메라")
                             .setGalleryButtonText("갤러리")
                             .setButtonOrientation(LinearLayoutCompat.HORIZONTAL)
-                            .setSystemDialog(false).setMaxSize(1000)
-                            ;
-
+                            .setSystemDialog(false).setMaxSize(1000);
 
                     PickImageDialog.build(setup).setOnPickResult(new IPickResult() {
                         @Override
@@ -1011,6 +1013,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
         mPenInfo.name = penName;
         mPenInfo.size = Prefer.getPrefFloat("PenSize",NvConstant.PEN_SIZE_1);
         mPenInfo.color = Prefer.getPrefInt("PenColor",NvConstant.PEN_BLACK);
+        mPenInfo.sizeLevel =0;
+        mPenInfo.isCurvable = false;
+
 
         SpenSettingPenInfo mMarkerInfo = new SpenSettingPenInfo();
         mMarkerInfo.name = penName;
@@ -1189,10 +1194,11 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                         jTextBox.put("COLOR",NvConstant.getTextColorCode(textBox.getTextColor()));
                         RectF rect = textBox.getRect();
                         String desc = textBox.getText();
-                        int count=new Integer(1);
-                        int i=new Integer(0);
-                        if(desc.equals("")){
-                            break;
+                        int count=1;
+                        int i=0;
+
+                        if(desc==null || desc.equals("")){
+                            continue;
                         }
                         while((i=desc.indexOf("\n",i+1))!=-1){
                             count++;
@@ -1558,7 +1564,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
         return returnValue;
     }
-
+    boolean menuCreate = false;
     private void initView(){
         mContext = getContext();
         activity = (Activity)mContext;
@@ -1638,7 +1644,12 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             public void onLongPressed(MotionEvent motionEvent) {
                 Log.d("onItem","x="+motionEvent.getX()+"y="+motionEvent.getY());
                 Log.d("onItem","rawx="+motionEvent.getRawX()+"rawy="+motionEvent.getRawY());
-                if(mMode==MODE_SELECTION){
+                Log.d("onItem","mMode="+mMode);
+                menuCreate = false;
+                if(menu!=null && menu.isShowing()){
+                    menu.close();
+                }
+                if(mMode==MODE_SELECTION && motionEvent.getAction() == MotionEvent.ACTION_DOWN){
                     PointF canvasPoint=getCanvasPoint(motionEvent);
                     longPressX=canvasPoint.x;
                     longPressY=canvasPoint.y;
@@ -1652,10 +1663,14 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                     SpenContextMenuItemInfo select_all = new SpenContextMenuItemInfo();
                     select_all.id=CONTEXT_MENU_SELECTALL_ID;
                     select_all.name="전체 선택";
+                    SpenContextMenuItemInfo close = new SpenContextMenuItemInfo();
+                    close.id=CONTEXT_MENU_CLOSE;
+                    close.name="취소";
 
 
                     items.add(item);
                     items.add(select_all);
+                    items.add(close);
 
                     menu = new SpenContextMenu(mContext,mSpenSurfaceView,items,NvChart.this);
 
@@ -1669,6 +1684,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
 
                     menu.show();
+
 
                 }
 
@@ -1736,6 +1752,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 Log.e("onFling","e1.getY() - e2.getY() ="+(e1.getY() - e2.getY())+", Math.abs(velocityY) ="+Math.abs(velocityY));
 
                 if(!e1.getDevice().getName().contains("sec_touchscreen")){
+                    return false;
+                }
+                if(mSpenPageDoc == null){
                     return false;
                 }
                 try {
@@ -1869,12 +1888,27 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             Log.e("NvChartTask","3");
 
             double textStart = System.currentTimeMillis();
+            ArrayList<SpenObjectBase> lists = nvData.getSignData();
+            if(lists!=null){
+                //SpenObjectContainer signData =  mSpenPageDoc.groupObject(lists,false);
+                //mSpenPageDoc.appendObject(signData);
+                //mSpenSurfaceView.update();
+
+                for(SpenObjectBase object : lists){
+                    object.setSelectable(false);
+                    mSpenPageDoc.appendObject(object);
+
+                }
+
+                mSpenPageDoc.groupObject(lists,false).setSelectable(false);
+
+            }
             for(SpenObjectTextBox object : nvData.getTextObjectData(NvConstant.TEXT_OBJ)){
+                object.setRotatable(false);
+
                 mSpenPageDoc.appendObject(object);
-
                 ///Rect test
-
-                RectF rect = object.getRect();
+                /*RectF rect = object.getRect();
                 PointF p1 = new PointF(rect.left,rect.top);
                 PointF p2 = new PointF(rect.left,rect.bottom);
                 PointF p3 = new PointF(rect.right,rect.top);
@@ -1888,7 +1922,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 mSpenPageDoc.appendObject(line1);
                 mSpenPageDoc.appendObject(line2);
                 mSpenPageDoc.appendObject(line3);
-                mSpenPageDoc.appendObject(line4);
+                mSpenPageDoc.appendObject(line4);*/
 
 
 
@@ -1917,6 +1951,10 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
                 //mSpenSurfaceView.update();
             }
             pointImageTime = (System.currentTimeMillis()-imageStart)/1000.0000;
+
+            /*for(SpenObjectBase object : nvData.getTextObjectData2(NvConstant.TEXT_OBJ)){
+                mSpenPageDoc.appendObject(object);
+            }*/
 
 
             long pointStart = System.currentTimeMillis();
@@ -1975,6 +2013,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     private SpenFlickListener onFlickListener = new SpenFlickListener() {
         @Override
         public boolean onFlick(int i) {
+            if(mSpenPageDoc == null){
+                return false;
+            }
             if(i==0){
                 //이전 페이지
                 if(getPageNo()>1){
@@ -2027,6 +2068,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             Log.e("event","1");
 
             closeSettingView();
+
             if (event.getAction() == MotionEvent.ACTION_UP && event.getToolType(0) == mToolType) {
                 // Check if the control is created.
                 SpenControlBase control = mSpenSurfaceView.getControl();
@@ -2386,6 +2428,9 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
             mSpenSurfaceView.close();
             mSpenSurfaceView = null;
         }*/
+        if(mSpenPageDoc != null){
+            mSpenPageDoc = null;
+        }
         if(mSpenNoteDoc != null) {
             try {
                 mSpenNoteDoc.close();
@@ -2454,7 +2499,7 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
     private class UIHandler extends Handler{
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-           /* switch (msg.arg1) {
+            /*switch (msg.arg1) {
                 case 1:
                     if(state.equals("DeActive")) //Fragment가 숨겨진 상태일 때
                         break;
@@ -2534,8 +2579,6 @@ public class NvChart extends LoadingFragment implements ToolButtonListener,SpenC
 
                         saveDialog.show();
                     }else{
-
-
                         handler.sendMessage(message);
                     }
 

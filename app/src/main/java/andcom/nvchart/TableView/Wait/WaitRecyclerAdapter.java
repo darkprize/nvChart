@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.regex.Pattern;
 
+import andcom.nvchart.MainActivity;
 import andcom.nvchart.R;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
@@ -53,12 +54,97 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
             JSONObject jsonItem =  jarrWaitList.getJSONObject(position);
             holder.txtSeq.setText(jsonItem.getString("CSSEQ"));
             holder.txtName.setText(jsonItem.getString("CSNAME"));
+            holder.txtAge.setText(jsonItem.getString("CSAGE"));
             holder.txtCharNo.setText(jsonItem.getString("CSCHARTNO"));
             holder.txtState.setText(jsonItem.getString("CSSATE"));
+            switch(holder.txtState.getText().toString()){
+                case "접수" :
+                    holder.txtState.setTextColor(MainActivity.context.getColor(R.color.cs_state_0));
+                    break;
+                case "진료중" :
+                    holder.txtState.setTextColor(MainActivity.context.getColor(R.color.cs_state_1));
+
+                    break;
+                case  "진료완료" :
+                    holder.txtState.setTextColor(MainActivity.context.getColor(R.color.cs_state_2));
+
+                    break;
+            }
             holder.txtTime.setText(jsonItem.getString("CSTIME"));
-            holder.txtDesc.setText(jsonItem.getString("CSDESC"));
+            String desc = jsonItem.getString("CSDESC");
+            if(desc.equals("")){
+                desc = "-";
+            }
+            String catime = jsonItem.getString("CATIME");
+            if(catime.equals("")){
+                catime = "-";
+            }
+            holder.txtDesc.setText(desc + "/" +catime);
             holder.txtDoctor.setText(jsonItem.getString("CSDOCTOR"));
             holder.txtJsonBag.setText(jsonItem.toString());
+
+            int imageID = R.drawable.avatar;
+            String[] cAge = jsonItem.getString("CSAGE").split("/");
+            int age = 0;
+            boolean isMan = true;
+            if(cAge.length>0){
+                age = Integer.parseInt(cAge[0]);
+                isMan = cAge[1].equals("남") ;
+            }
+
+            if(age<14){
+                if(isMan){
+                    imageID = R.drawable.avatar_under_10_male;
+                }else{
+                    imageID = R.drawable.avatar_under_10_female;
+                }
+            }else if(age<20){
+                if(isMan){
+                    imageID = R.drawable.avatar_over_10_male;
+                }else{
+                    imageID = R.drawable.avatar_over_10_female;
+                }
+            }else if(age<30){
+                if(isMan){
+                    imageID = R.drawable.avatar_over_30_male;
+                }else{
+                    imageID = R.drawable.avatar_over_30_female;
+                }
+            }else if(age<45){
+                if(isMan){
+                    imageID = R.drawable.avatar_over_40_male;
+                }else{
+                    imageID = R.drawable.avatar_over_40_female;
+                }
+            }else if(age<65){
+                if(isMan){
+                    imageID = R.drawable.avatar_over_50_male;
+                }else{
+                    imageID = R.drawable.avatar_over_50_female;
+                }
+
+            }else if(age>=65){
+                if(isMan){
+                    imageID = R.drawable.avatar_over_60_male;
+                }else{
+                    imageID = R.drawable.avatar_over_60_female;
+                }
+
+            }
+            if(age==0){
+                imageID = R.drawable.avatar;
+            }
+
+            RequestOptions options = new RequestOptions();
+            options.diskCacheStrategy(DiskCacheStrategy.NONE);
+            options.skipMemoryCache(true);
+            options.fitCenter();
+
+            Glide.with(MainActivity.context)
+                    .load(imageID)
+                    .apply(options)
+                    .into(holder.ivAvatar);
+
         }catch (JSONException je){
             je.printStackTrace();
         }
@@ -106,6 +192,7 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
             txtSeq = (TextView)itemView.findViewById(R.id.seq);
             txtCharNo = (TextView)itemView.findViewById(R.id.chartno);
             txtName = (TextView)itemView.findViewById(R.id.name);
+            txtAge = (TextView)itemView.findViewById(R.id.age);
             txtState = (TextView)itemView.findViewById(R.id.state);
             txtTime = (TextView)itemView.findViewById(R.id.time);
             txtDesc = (TextView)itemView.findViewById(R.id.desc);

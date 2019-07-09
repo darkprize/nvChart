@@ -76,7 +76,7 @@ public class NodeListRecyclerAdapter extends RecyclerView.Adapter<NodeListRecycl
             holder.txtNodeKey.setText(jsonItem.getString("NS_NODEKEY"));
             holder.txtJsonBag.setText(jsonItem.toString());
 
-            holder.nodeFile = jsonItem.getString("DB")+":"+jsonItem.getString("NS_NODEKEY");
+            holder.nodeFile = jsonItem.getString("DB")+":"+jsonItem.getString("NS_NODEKEY")+":"+jsonItem.getString("NS_TITLE");
 
         }catch (JSONException je){
             je.printStackTrace();

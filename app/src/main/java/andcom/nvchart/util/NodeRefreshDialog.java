@@ -22,6 +22,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -56,7 +57,7 @@ public class NodeRefreshDialog extends DialogFragment {
     TextView notify;
     RecyclerView recyclerView;
     Button btnConfirm;
-    HashMap<String,Integer> nodeList;
+    HashMap<String,Boolean> nodeList;
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         //view = inflater.inflate(R.layout.node_refresh_dialog, container);
@@ -94,6 +95,10 @@ public class NodeRefreshDialog extends DialogFragment {
         btnConfirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                for(String key : nodeList.keySet()) {
+                    Log.e("nodeList",key+nodeList.get(key));
+
+                }
                 refreshNode(recyclerView);
             }
         });
@@ -103,21 +108,26 @@ public class NodeRefreshDialog extends DialogFragment {
             public void onItemClicked(RecyclerView recyclerView, int position, View v) {
                 NodeListRecyclerAdapter.ItemViewHolder holder = (NodeListRecyclerAdapter.ItemViewHolder)recyclerView.getChildViewHolder(v);
                 holder.check();
-                nodeList.put(holder.getNode(),holder.isChecked()?1:0);
+                Log.w("CheckBox",holder.isChecked() + " v="+(holder.isChecked()?1:0));
+                nodeList.put(holder.getNode(),holder.isChecked());
+
+                for(String key : nodeList.keySet()) {
+                    Log.e("nodeList",key+nodeList.get(key));
+
+                }
             }
         });
         LoadNodeList loadNodeList = new LoadNodeList();
         loadNodeList.execute();
     }
     public void refreshNode(RecyclerView recyclerView){
-        NodeListRecyclerAdapter adapter = (NodeListRecyclerAdapter)recyclerView.getAdapter();
 
         NodeRefreshASync nodeRefreshASync = new NodeRefreshASync();
         nodeRefreshASync.execute(nodeList);
 
     }
 
-    public class NodeRefreshASync extends AsyncTask<HashMap<String,Integer>,String,Boolean>{
+    public class NodeRefreshASync extends AsyncTask<HashMap<String,Boolean>,String,JSONObject>{
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -126,16 +136,17 @@ public class NodeRefreshDialog extends DialogFragment {
         }
 
         @Override
-        protected Boolean doInBackground(HashMap<String,Integer>... hashMaps) {
-
+        protected JSONObject doInBackground(HashMap<String,Boolean>... hashMaps) {
+            JSONObject result = new JSONObject();
+            JSONArray array = new JSONArray();
             for(String key : hashMaps[0].keySet()){
 
-                int value = hashMaps[0].get(key);
+                boolean value = hashMaps[0].get(key);
 
-                if(value==1){
+                if(value){
                     Log.e("nodeList",key);
                     String[] cSend = key.split(":");
-                    String cFileName = key.replace(":","")+".jpg";
+                    String cFileName = cSend[0]+cSend[1]+".jpg";
                     File fNode = new File(context.getFilesDir()+File.separator+cFileName);
                     if(!fNode.canRead()){
                         try {
@@ -150,10 +161,18 @@ public class NodeRefreshDialog extends DialogFragment {
                         int port = Integer.parseInt(Prefer.getPrefString("key_port","80"));
                         socket.connect(new InetSocketAddress(ip,port),3000);
                         if(!socket.isConnected()){
-                            return false;
+                            try {
+                                result.put("Code",false);
+                                result.put("Msg","서버에 접속 할 수 없습니다.");
+                                result.put("List",array);
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            return result;
                         }
                         PrintWriter printWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"EUC-KR")),true);
-                        printWriter.println(MakeJSONData.get(MsgType.LOAD_NVCHART,cSend[0],"",cSend[1],"0"));
+                        printWriter.println(MakeJSONData.get(MsgType.LOAD_NVCHART,cSend[0],"",cSend[1],"1"));
                         BufferedInputStream bufferedInputStream = new BufferedInputStream(socket.getInputStream());
 
                         int len;
@@ -162,7 +181,7 @@ public class NodeRefreshDialog extends DialogFragment {
 
                         while((len = bufferedInputStream.read(buffer)) != -1){
                             bos.write(buffer,0,len);
-
+                            Log.w("NodeInstall",new String(buffer));
                             if(indexOf(buffer,"---AndcomData_END---".getBytes(),0)>=0){
                                 Log.e("break1","socket end");
                                 break;
@@ -175,6 +194,19 @@ public class NodeRefreshDialog extends DialogFragment {
                         bos.close();
                         int start=indexOf(data,BACK_IMAGE_START.getBytes(),0)+BACK_IMAGE_START.getBytes().length;
                         int end=indexOf(data,BACK_IMAGE_END.getBytes(),0);
+                        if(end-start <0){
+                            try {
+                                JSONObject itemResult = new JSONObject();
+                                itemResult.put("Code",false);
+                                itemResult.put("Msg","실패(파일이 존재 하지 않는 것 같습니다.)");
+                                itemResult.put("Title",cSend[2]);
+
+                                array.put(itemResult);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            continue;
+                        }
                         byte[] backImageData = new byte[end-start];
                         System.arraycopy(data,start,backImageData,0,end-start);
                         FileOutputStream fos = new FileOutputStream(fNode);
@@ -182,23 +214,71 @@ public class NodeRefreshDialog extends DialogFragment {
                         fos.flush();
                         fos.close();
 
-                        return true;
+                        try {
+                            JSONObject itemResult = new JSONObject();
+                            itemResult.put("Code",true);
+                            itemResult.put("Msg","성공");
+                            itemResult.put("Title",cSend[2]);
+                            array.put(itemResult);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+
                     } catch (IOException e) {
                         e.printStackTrace();
+                        try {
+                            result.put("Code",false);
+                            result.put("Msg","작업이 실패했습니다.("+e.getLocalizedMessage()+")");
+                        } catch (JSONException je) {
+                            je.printStackTrace();
+                        }
+                        return result;
                     }
 
                 }
 
             }
-            return null;
+            try {
+                result.put("Code",true);
+
+                result.put("List",array);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return result;
         }
         @Override
-        protected void onPostExecute(Boolean result) {
+        protected void onPostExecute(JSONObject result) {
             super.onPostExecute(result);
-            if(result){
-                Toasty.info(context,"작업 완료").show();
-            }else{
-                Toasty.error(context,"서버에 접속 할 수 없습니다.").show();
+            if(result!=null){
+                try {
+                    JSONArray array = result.getJSONArray("List");
+                    String resultMsg = new String();
+                    for(int i =0;i<array.length();i++){
+                        resultMsg = resultMsg+ array.getJSONObject(i).getString("Title")+ " : " + array.getJSONObject(i).getString("Msg") ;
+                        if(i != array.length()-1){
+                            resultMsg = resultMsg+ "\r\n";
+                        }
+                    }
+                    try {
+                        if(result.getBoolean("Code")){
+                            Toasty.info(context,resultMsg,Toasty.LENGTH_LONG).show();
+
+                        }else{
+                            Toasty.error(context,result.getString("Msg"),Toasty.LENGTH_LONG).show();
+
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toasty.error(context,"Error : " + e.getLocalizedMessage(),Toasty.LENGTH_LONG).show();
+
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
             }
             loading.setVisibility(View.INVISIBLE);
 
