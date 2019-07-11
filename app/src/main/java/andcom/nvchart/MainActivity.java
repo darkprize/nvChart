@@ -2,8 +2,10 @@ package andcom.nvchart;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -15,6 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
@@ -89,6 +92,8 @@ import andcom.nvchart.util.NvChartDB;
 import es.dmoral.toasty.Toasty;
 import kotlin.Function;
 import kotlin.jvm.functions.Function1;
+
+import static androidx.fragment.app.DialogFragment.STYLE_NORMAL;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,ToolButtonListener {
@@ -222,6 +227,15 @@ public class MainActivity extends AppCompatActivity
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
                 loadDBList();
+                /*new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        FragmentManager fm = getSupportFragmentManager();
+                        WaitingBoardDialog waitingBoardDialog = new WaitingBoardDialog();
+                        waitingBoardDialog.setStyle(STYLE_NORMAL,STYLE_NORMAL );
+                        waitingBoardDialog.show(fm,"");
+                    }
+                }).start();*/
             }
 
             @Override
@@ -432,7 +446,6 @@ public class MainActivity extends AppCompatActivity
                 onClicked(v);
             }
         });
-
     }
     private void initSqlite(){
 
@@ -619,6 +632,14 @@ public class MainActivity extends AppCompatActivity
 
         setjNvData(null,null,nvListRecyclerAdapter.getNodeKey(0),nvListRecyclerAdapter.getPageCnt(0));
 
+    }
+
+    private void setfullwidth(){
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        DrawerLayout.LayoutParams params = (DrawerLayout.LayoutParams) navigationView.getLayoutParams();
+        params.width = displayMetrics.widthPixels;
+        navigationView.setLayoutParams(params);
     }
 
     @Override

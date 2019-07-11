@@ -8,7 +8,6 @@
     android:background="@android:color/transparent"
     android:fitsSystemWindows="true"
     tools:openDrawer="start">
-
     <include
         layout="@layout/app_bar_main"
         android:layout_width="match_parent"
@@ -21,119 +20,127 @@
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/nav_header_main">
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:layout_marginTop="@dimen/nav_header_height2"
-            android:id="@+id/nvBottom">
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            android:id="@+id/cardViewCustList"
-            app:cardElevation="0dp">
-                <androidx.recyclerview.widget.RecyclerView
-                    android:layout_width="match_parent"
-                    android:layout_height="300dp"
-                    android:background="@android:color/transparent"
-                    android:id="@+id/recyclerCust"
-                    tools:listitem="@layout/cust_item">
+            android:orientation="horizontal">
 
-                </androidx.recyclerview.widget.RecyclerView>
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/cardViewNvList">
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginTop="20dp"
-                android:orientation="vertical">
-                <LinearLayout
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/nav_header_height2"
+                android:id="@+id/nvBottom">
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:layout_marginLeft="20dp"
-                        android:gravity="center"
-                        android:textSize="20sp"
-                        android:text="서식지"/>
-                    <LinearLayout
+                    app:cardBackgroundColor="@android:color/transparent"
+                    android:id="@+id/cardViewCustList"
+                    app:cardElevation="0dp">
+                    <androidx.recyclerview.widget.RecyclerView
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingLeft="30dp"
-                        android:paddingRight="30dp"
-                        android:id="@+id/layoutDB"
-                        android:visibility="gone"
-                        tools:visibility="visible">
-                        <ImageButton
-                            android:layout_width="0dp"
-                            android:layout_height="30dp"
-                            android:scaleType="fitCenter"
-                            android:background="@android:color/transparent"
-                            android:layout_weight="1"
-                            android:src="@drawable/button_db_1"
-                            android:text="DB1"
-                            android:tag="1"
-                            android:id="@+id/btnDB1"/>
-                        <ImageButton
-                            android:layout_width="0dp"
-                            android:layout_height="30dp"
-                            android:scaleType="fitCenter"
-                            android:background="@android:color/transparent"
-                            android:layout_weight="1"
-                            android:src="@drawable/button_db_2"
-                            android:text="DB2"
-                            android:tag="2"
-                            android:id="@+id/btnDB2"/>
-                        <ImageButton
-                            android:layout_width="0dp"
-                            android:layout_height="30dp"
-                            android:scaleType="fitCenter"
-                            android:visibility="gone"
-                            tools:visibility="visible"
-                            android:background="@android:color/transparent"
-                            android:layout_weight="1"
-                            android:src="@drawable/button_db_3"
-                            android:text="DB3"
-                            android:tag="3"
-                            android:id="@+id/btnDB3"/>
-                    </LinearLayout>
-                </LinearLayout>
+                        android:layout_height="300dp"
+                        android:background="@android:color/transparent"
+                        android:id="@+id/recyclerCust"
+                        tools:listitem="@layout/cust_item">
 
+                    </androidx.recyclerview.widget.RecyclerView>
+                </androidx.cardview.widget.CardView>
 
-                <androidx.recyclerview.widget.RecyclerView
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_margin="20dp"
-                    android:padding="20dp"
-                    android:id="@+id/recyclerNvList"
-                    android:background="@drawable/background_nvlist"
-                    tools:listitem="@layout/nv_item">
+                    android:id="@+id/cardViewNvList">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginTop="20dp"
+                        android:orientation="vertical">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:layout_marginLeft="20dp"
+                                android:gravity="center"
+                                android:textSize="20sp"
+                                android:text="서식지"/>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingLeft="30dp"
+                                android:paddingRight="30dp"
+                                android:id="@+id/layoutDB"
+                                android:visibility="gone"
+                                tools:visibility="visible">
+                                <ImageButton
+                                    android:layout_width="0dp"
+                                    android:layout_height="30dp"
+                                    android:scaleType="fitCenter"
+                                    android:background="@android:color/transparent"
+                                    android:layout_weight="1"
+                                    android:src="@drawable/button_db_1"
+                                    android:text="DB1"
+                                    android:tag="1"
+                                    android:id="@+id/btnDB1"/>
+                                <ImageButton
+                                    android:layout_width="0dp"
+                                    android:layout_height="30dp"
+                                    android:scaleType="fitCenter"
+                                    android:background="@android:color/transparent"
+                                    android:layout_weight="1"
+                                    android:src="@drawable/button_db_2"
+                                    android:text="DB2"
+                                    android:tag="2"
+                                    android:id="@+id/btnDB2"/>
+                                <ImageButton
+                                    android:layout_width="0dp"
+                                    android:layout_height="30dp"
+                                    android:scaleType="fitCenter"
+                                    android:visibility="gone"
+                                    tools:visibility="visible"
+                                    android:background="@android:color/transparent"
+                                    android:layout_weight="1"
+                                    android:src="@drawable/button_db_3"
+                                    android:text="DB3"
+                                    android:tag="3"
+                                    android:id="@+id/btnDB3"/>
+                            </LinearLayout>
+                        </LinearLayout>
 
-                </androidx.recyclerview.widget.RecyclerView>
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_margin="20dp"
+                            android:padding="20dp"
+                            android:id="@+id/recyclerNvList"
+                            android:background="@drawable/background_nvlist"
+                            tools:listitem="@layout/nv_item">
+
+                        </androidx.recyclerview.widget.RecyclerView>
+                    </LinearLayout>
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone"
+                        tools:visibility="visible"
+                        android:id="@+id/loading_nvlist"
+                        android:scaleType="center"
+                        android:src="@drawable/loading_animation2"
+                        android:background="#59C5C6CA"
+                        />
+
+                </androidx.cardview.widget.CardView>
+
             </LinearLayout>
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone"
-                tools:visibility="visible"
-                android:id="@+id/loading_nvlist"
-                android:scaleType="center"
-                android:src="@drawable/loading_animation2"
-                android:background="#59C5C6CA"
-                />
-
-        </androidx.cardview.widget.CardView>
-
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
         </LinearLayout>
-    </com.google.android.material.navigation.NavigationView>
 
+    </com.google.android.material.navigation.NavigationView>
 </androidx.drawerlayout.widget.DrawerLayout>
