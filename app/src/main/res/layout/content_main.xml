@@ -114,7 +114,7 @@
     <FrameLayout
         android:id="@+id/frmMain"
         android:layout_width="match_parent"
-        android:layout_height="1092dp"
+        android:layout_height="match_parent"
         android:background="@color/colorPrimarySoft"
         android:layout_below="@id/toollayout"
         tools:layout_editor_absoluteY="58dp">

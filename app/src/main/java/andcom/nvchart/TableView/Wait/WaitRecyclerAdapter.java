@@ -44,7 +44,7 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
     }
     @Override
     public WaitRecyclerAdapter.ItemViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.wait_item,parent,false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.wait_item_new,parent,false);
         return new ItemViewHolder(view);
     }
 
@@ -60,13 +60,16 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
             switch(holder.txtState.getText().toString()){
                 case "접수" :
                     holder.txtState.setTextColor(MainActivity.context.getColor(R.color.cs_state_0));
+                    holder.stateBar.setBackgroundColor(MainActivity.context.getColor(R.color.cs_state_0));
                     break;
                 case "진료중" :
                     holder.txtState.setTextColor(MainActivity.context.getColor(R.color.cs_state_1));
+                    holder.stateBar.setBackgroundColor(MainActivity.context.getColor(R.color.cs_state_1));
 
                     break;
                 case  "진료완료" :
                     holder.txtState.setTextColor(MainActivity.context.getColor(R.color.cs_state_2));
+                    holder.stateBar.setBackgroundColor(MainActivity.context.getColor(R.color.cs_state_2));
 
                     break;
             }
@@ -79,7 +82,7 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
             if(catime.equals("")){
                 catime = "-";
             }
-            holder.txtDesc.setText(desc + "/" +catime);
+            holder.txtDesc.setText(desc);
             holder.txtDoctor.setText(jsonItem.getString("CSDOCTOR"));
             holder.txtJsonBag.setText(jsonItem.toString());
 
@@ -186,6 +189,7 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
         private TextView txtAge;
         private TextView txtBirth;
         private ImageView ivAvatar;
+        private View stateBar;
         public ItemViewHolder(View itemView){
             super(itemView);
             cardView = (CardView)itemView.findViewById(R.id.cardView);
@@ -198,6 +202,7 @@ public class WaitRecyclerAdapter extends RecyclerView.Adapter<WaitRecyclerAdapte
             txtDesc = (TextView)itemView.findViewById(R.id.desc);
             txtDoctor = (TextView)itemView.findViewById(R.id.doctor);
             txtJsonBag = (TextView)itemView.findViewById(R.id.jsonBag);
+            stateBar = itemView.findViewById(R.id.stateBar);
             //txtAge = (TextView)itemView.findViewById(R.id.txtAgeSex);
             //txtBirth = (TextView)itemView.findViewById(R.id.txtBirth);
             ivAvatar = (ImageView)itemView.findViewById(R.id.icon);

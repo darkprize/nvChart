@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="horizontal"
+    android:background="@android:color/transparent"
+    android:weightSum="2"
+    tools:context=".CustPanel">
+
+    <!-- TODO: Update blank fragment layout -->
+
+    <!-- 왼쪽 레이아웃 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:padding="10dp">
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            >
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@drawable/side_nav_bar"
+                android:padding="20dp"
+                >
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top"
+                    android:orientation="vertical"
+                    android:paddingBottom="@dimen/activity_vertical_margin"
+                    android:paddingLeft="@dimen/activity_horizontal_margin"
+                    android:paddingRight="@dimen/activity_horizontal_margin"
+                    android:paddingTop="@dimen/activity_vertical_margin"
+                    android:theme="@style/ThemeOverlay.AppCompat.Dark"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true">
+
+                    <ImageView
+                        android:id="@+id/imageView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/nav_header_desc"
+                        android:paddingTop="@dimen/nav_header_vertical_spacing"
+                        app:srcCompat="@drawable/papyrusemr_logo" />
+                    <!--
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingTop="@dimen/nav_header_vertical_spacing"
+                            android:text="@string/nav_header_title"
+                            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+
+                        <TextView
+                            android:id="@+id/textView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/nav_header_subtitle" />-->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/WaitHeaderStyle"
+                        android:hint="이름">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/editName"
+                            android:inputType="text"
+                            android:imeOptions="actionSearch"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/WaitHeaderStyle"
+                        android:hint="차트번호">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/editChartNo"
+                            android:inputType="text"
+                            android:imeOptions="actionSearch"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="조회"
+                        android:layout_gravity="right"
+                        android:id="@+id/btnSearch"
+                        android:textColor="#ffffffff"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/button_round_background"
+                        />
+
+
+                </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:background="@android:color/transparent"
+                        android:id="@+id/nvBottom">
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:contentPadding="8dp"
+                            android:id="@+id/cardViewCustList"
+                            app:cardElevation="0dp">
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:layout_width="match_parent"
+                                android:layout_height="350dp"
+                                android:background="@android:color/transparent"
+                                android:id="@+id/recyclerCust"
+                                tools:listitem="@layout/cust_item">
+
+                            </androidx.recyclerview.widget.RecyclerView>
+                        </androidx.cardview.widget.CardView>
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:id="@+id/cardViewNvList"
+                            app:cardUseCompatPadding="true"
+                            app:cardCornerRadius="10dp"
+                            app:cardElevation="0dp">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_marginTop="20dp"
+                                android:orientation="vertical">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="match_parent"
+                                        android:layout_marginLeft="20dp"
+                                        android:gravity="center"
+                                        android:textSize="20sp"
+                                        android:text="서식지"/>
+                                    <LinearLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="horizontal"
+                                        android:paddingLeft="30dp"
+                                        android:paddingRight="30dp"
+                                        android:id="@+id/layoutDB"
+                                        android:visibility="gone"
+                                        tools:visibility="visible">
+                                        <ImageButton
+                                            android:layout_width="0dp"
+                                            android:layout_height="30dp"
+                                            android:scaleType="fitCenter"
+                                            android:background="@android:color/transparent"
+                                            android:layout_weight="1"
+                                            android:src="@drawable/button_db_1"
+                                            android:text="DB1"
+                                            android:tag="1"
+                                            android:id="@+id/btnDB1"/>
+                                        <ImageButton
+                                            android:layout_width="0dp"
+                                            android:layout_height="30dp"
+                                            android:scaleType="fitCenter"
+                                            android:background="@android:color/transparent"
+                                            android:layout_weight="1"
+                                            android:src="@drawable/button_db_2"
+                                            android:text="DB2"
+                                            android:tag="2"
+                                            android:id="@+id/btnDB2"/>
+                                        <ImageButton
+                                            android:layout_width="0dp"
+                                            android:layout_height="30dp"
+                                            android:scaleType="fitCenter"
+                                            android:visibility="gone"
+                                            tools:visibility="visible"
+                                            android:background="@android:color/transparent"
+                                            android:layout_weight="1"
+                                            android:src="@drawable/button_db_3"
+                                            android:text="DB3"
+                                            android:tag="3"
+                                            android:id="@+id/btnDB3"/>
+                                    </LinearLayout>
+                                </LinearLayout>
+
+
+                                <androidx.recyclerview.widget.RecyclerView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:layout_margin="20dp"
+                                    android:padding="20dp"
+                                    android:id="@+id/recyclerNvList"
+                                    android:background="@drawable/background_nvlist"
+                                    tools:listitem="@layout/nv_item">
+
+                                </androidx.recyclerview.widget.RecyclerView>
+                            </LinearLayout>
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:visibility="gone"
+                                tools:visibility="visible"
+                                android:id="@+id/loading_nvlist"
+                                android:scaleType="center"
+                                android:src="@drawable/loading_animation2"
+                                android:background="#59C5C6CA"
+                                />
+
+                        </androidx.cardview.widget.CardView>
+
+                    </LinearLayout>
+                </LinearLayout>
+
+
+        </androidx.cardview.widget.CardView>
+
+
+    </LinearLayout>
+
+    <!-- 오른쪽 레이아웃 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:orientation="vertical"
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp"
+        android:paddingRight="10dp"
+        android:weightSum="2">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:layout_toLeftOf="@id/btnRefresh"
+            android:id="@+id/dateCardView"
+            app:cardCornerRadius="14dp">
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:background="@drawable/side_nav_bar">
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignBottom="@id/date"
+                        android:src="@drawable/button_prev"
+                        android:background="@android:color/transparent"
+                        android:id="@+id/datePrev"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/datePrev"
+                        android:layout_toLeftOf="@id/dateNext"
+                        android:textStyle="bold"
+                        android:id="@+id/date"
+                        android:textSize="20sp"
+                        android:gravity="center"
+                        android:text="2019-07-07"/>
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignBottom="@id/date"
+                        android:src="@drawable/button_next"
+                        android:background="@android:color/transparent"
+                        android:id="@+id/dateNext"/>
+            </RelativeLayout>
+
+
+        </androidx.cardview.widget.CardView>
+
+            <ImageButton
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:padding="6dp"
+                android:scaleType="centerCrop"
+                android:layout_alignParentEnd="true"
+                android:background="@android:color/transparent"
+                android:id="@+id/btnRefresh"
+                android:src="@drawable/button_refresh"/>
+        </RelativeLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="1">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="14dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="10dp"
+                    android:background="@drawable/side_nav_bar">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="접수현황"
+                        android:textColor="@color/colorPrimarySoft"
+                        android:textSize="20sp"/>
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/waitRecyclerView"
+                        tools:listitem="@layout/wait_item_new"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
+            android:layout_weight="1">
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="10dp"
+                    android:background="@drawable/side_nav_bar">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="예약현황"
+                        android:textColor="@color/colorPrimarySoft"
+                        android:textSize="20sp"/>
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/orderRecyclerView"
+                        tools:listitem="@layout/order_item_call_new"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

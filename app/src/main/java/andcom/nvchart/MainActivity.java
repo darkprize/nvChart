@@ -46,6 +46,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
@@ -58,6 +61,7 @@ import org.jsoup.nodes.Document;
 import org.json.JSONObject;
 import org.jsoup.nodes.Node;
 
+import java.io.File;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -126,7 +130,8 @@ public class MainActivity extends AppCompatActivity
     public static NvListRecyclerAdapter nvListRecyclerAdapter;
     private static JSONObject jNvData;
 
-    Handler handler1 ;
+    static Handler handler1 ;
+    boolean isBackSet = false;
 
     public static void setjNvData(@Nullable String db, @Nullable String chartno, @Nullable String nodekey, @Nullable String page){
         if(jNvData==null){
@@ -201,10 +206,10 @@ public class MainActivity extends AppCompatActivity
 
         //gesturedetector = new GestureDetector(new MyGestureListener());
 
-        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer = findViewById(R.id.drawer_layout);
 
-        bottom_sheet = (RelativeLayout) findViewById(R.id.bottom_sheet);
-        final LinearLayout bottom_tool_bar = (LinearLayout) findViewById(R.id.bottom_tool_bar);
+        bottom_sheet = findViewById(R.id.bottom_sheet);
+        final LinearLayout bottom_tool_bar = findViewById(R.id.bottom_tool_bar);
 
         bottom_sheet.setOnDragListener(new View.OnDragListener() {
             @Override
@@ -453,7 +458,17 @@ public class MainActivity extends AppCompatActivity
     public void onClicked(View v){
         if("search".equals(v.getTag().toString())){
             DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-            drawer.openDrawer(Gravity.LEFT);
+            //drawer.openDrawer(Gravity.LEFT);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    FragmentManager fm = getSupportFragmentManager();
+                    CustPanel custPanel = new CustPanel();
+                    custPanel.show(fm,"");
+                }
+            }).start();
+
         }
         if(fragment instanceof NvChart){
             ((NvChart) fragment).onClicked(v);
@@ -548,6 +563,24 @@ public class MainActivity extends AppCompatActivity
                 }
                 loading_nvlist.setVisibility(View.GONE);
 
+                //첫 화면 서식 지정
+                String backImagePath = context.getFilesDir()+ File.separator+ "1" + nvListRecyclerAdapter.getNodeKey(0) + ".jpg";
+                if(new File(backImagePath).canRead() && !isBackSet){
+
+                    ImageView background = findViewById(R.id.backgroundImage);
+
+                    RequestOptions options = new RequestOptions();
+                    options.diskCacheStrategy(DiskCacheStrategy.NONE);
+                    options.skipMemoryCache(true);
+                    options.fitCenter();
+
+                    Glide.with(context)
+                            .load(backImagePath)
+                            .apply(options)
+                            //.into(imageView);
+                            .into(background);
+                    isBackSet = true;
+                }
             }
 
         }.execute();
